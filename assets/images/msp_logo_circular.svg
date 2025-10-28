@@ -1,0 +1,22 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Círculo de fondo blanco -->
+  <circle cx="60" cy="60" r="55" fill="white" stroke="#E31E24" stroke-width="3"/>
+  
+  <!-- Fondo amarillo de "m" -->
+  <rect x="25" y="35" width="20" height="35" fill="#FDB900" rx="3"/>
+  
+  <!-- Letra "m" en blanco -->
+  <text x="35" y="57" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">m</text>
+  
+  <!-- Fondo rojo de "p" -->
+  <rect x="42" y="40" width="20" height="35" fill="#E31E24" rx="3"/>
+  
+  <!-- Letra "p" en blanco -->
+  <text x="52" y="62" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">p</text>
+  
+  <!-- Texto "MSP" -->
+  <text x="60" y="88" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="middle">MSP</text>
+  
+  <!-- Línea amarilla decorativa -->
+  <rect x="30" y="92" width="60" height="2" fill="#FDB900"/>
+</svg>
