@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
+import '../models/user.dart';
+import 'director/director_dashboard.dart';
+import 'doctor/doctor_dashboard.dart';
+import 'patient/patient_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,7 +25,37 @@ class _LoginScreenState extends State<LoginScreen> {
     'doctor': 'doctor123',
     'enfermera': 'enfermera123',
     'recepcionista': 'recepcion123',
+    'director': 'director123', // Agregado para el director
+    'paciente': 'paciente123', // Agregado para el paciente
   };
+
+  // Usuarios de prueba para el sistema del director
+  final List<User> _demoUsers = [
+    User(
+      username: 'director',
+      displayName: 'Juan Carlos Rodríguez',
+      email: 'director@agencitas.com',
+      role: UserRole.director,
+      isActive: true,
+      createdAt: DateTime.now(),
+    ),
+    User(
+      username: 'doctor',
+      displayName: 'María Elena García',
+      email: 'doctor@agencitas.com',
+      role: UserRole.doctor,
+      isActive: true,
+      createdAt: DateTime.now(),
+    ),
+    User(
+      username: 'paciente',
+      displayName: 'Carlos Antonio Pérez',
+      email: 'paciente@agencitas.com',
+      role: UserRole.patient,
+      isActive: true,
+      createdAt: DateTime.now(),
+    ),
+  ];
 
   @override
   void dispose() {
@@ -47,13 +81,92 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (_validCredentials.containsKey(username) && 
         _validCredentials[username] == password) {
-      // Login exitoso
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const HomeScreen(),
+      
+      // Verificar si es el director para redirigir al panel especial
+      if (username == 'director') {
+        // Buscar el usuario director
+        final directorUser = _demoUsers.firstWhere(
+          (user) => user.username == 'director',
+          orElse: () => User(
+            username: 'director',
+            displayName: 'Director del Centro',
+            email: 'director@agencitas.com',
+            role: UserRole.director,
+            isActive: true,
+            createdAt: DateTime.now(),
           ),
         );
+        
+        // Establecer sesión
+        SessionManager.login(directorUser);
+        
+        // Navegar al panel del director
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => DirectorDashboard(director: directorUser),
+            ),
+          );
+        }
+      } else if (username == 'doctor') {
+        // Buscar el usuario doctor
+        final doctorUser = _demoUsers.firstWhere(
+          (user) => user.username == 'doctor',
+          orElse: () => User(
+            username: 'doctor',
+            displayName: 'María Elena García',
+            email: 'doctor@agencitas.com',
+            role: UserRole.doctor,
+            isActive: true,
+            createdAt: DateTime.now(),
+          ),
+        );
+        
+        // Establecer sesión
+        SessionManager.login(doctorUser);
+        
+        // Navegar al panel del doctor
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => DoctorDashboard(doctor: doctorUser),
+            ),
+          );
+        }
+      } else if (username == 'paciente') {
+        // Buscar el usuario paciente
+        final patientUser = _demoUsers.firstWhere(
+          (user) => user.username == 'paciente',
+          orElse: () => User(
+            username: 'paciente',
+            displayName: 'Carlos Antonio Pérez',
+            email: 'paciente@agencitas.com',
+            role: UserRole.patient,
+            isActive: true,
+            createdAt: DateTime.now(),
+          ),
+        );
+        
+        // Establecer sesión
+        SessionManager.login(patientUser);
+        
+        // Navegar al panel del paciente
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => PatientDashboard(patient: patientUser),
+            ),
+          );
+        }
+      } else {
+        // Login exitoso para otros usuarios - ir al HomeScreen original
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const HomeScreen(),
+            ),
+          );
+        }
       }
     } else {
       // Login fallido
@@ -85,7 +198,9 @@ class _LoginScreenState extends State<LoginScreen> {
             Text('Usuarios disponibles:', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
             Text('• admin / admin123'),
+            Text('• director / director123'),
             Text('• doctor / doctor123'),
+            Text('• paciente / paciente123'),
             Text('• enfermera / enfermera123'),
             Text('• recepcionista / recepcion123'),
           ],

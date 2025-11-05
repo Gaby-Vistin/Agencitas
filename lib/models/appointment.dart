@@ -2,6 +2,46 @@ import 'package:flutter/material.dart';
 import 'patient.dart';
 import 'doctor.dart' as doctor_models;
 
+// Estado de la terapia para el semáforo
+enum TherapyStatus {
+  notStarted,
+  inProgress,
+  completed;
+
+  String get displayName {
+    switch (this) {
+      case TherapyStatus.notStarted:
+        return 'No iniciada';
+      case TherapyStatus.inProgress:
+        return 'En progreso';
+      case TherapyStatus.completed:
+        return 'Finalizada';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case TherapyStatus.notStarted:
+        return const Color(0xFFF44336); // Rojo
+      case TherapyStatus.inProgress:
+        return const Color(0xFFFF9800); // Amarillo/Naranja
+      case TherapyStatus.completed:
+        return const Color(0xFF4CAF50); // Verde
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case TherapyStatus.notStarted:
+        return Icons.play_circle_outline;
+      case TherapyStatus.inProgress:
+        return Icons.pending;
+      case TherapyStatus.completed:
+        return Icons.check_circle;
+    }
+  }
+}
+
 class Appointment {
   final int? id;
   final int patientId;
@@ -10,6 +50,7 @@ class Appointment {
   final doctor_models.TimeOfDay appointmentTime;
   final AppointmentStatus status;
   final AppointmentStage stage;
+  final TherapyStatus therapyStatus;
   final String? notes;
   final String? referralCode;
   final bool isFromProvince;
@@ -30,6 +71,7 @@ class Appointment {
     required this.appointmentTime,
     this.status = AppointmentStatus.scheduled,
     required this.stage,
+    this.therapyStatus = TherapyStatus.notStarted,
     this.notes,
     this.referralCode,
     this.isFromProvince = false,
@@ -70,6 +112,7 @@ class Appointment {
       'appointmentTime': '${appointmentTime.hour}:${appointmentTime.minute}',
       'status': status.index,
       'stage': stage.index,
+      'therapyStatus': therapyStatus.index,
       'notes': notes,
       'referralCode': referralCode,
       'isFromProvince': isFromProvince ? 1 : 0,
@@ -94,6 +137,9 @@ class Appointment {
       ),
       status: AppointmentStatus.values[map['status']],
       stage: AppointmentStage.values[map['stage']],
+      therapyStatus: map['therapyStatus'] != null 
+          ? TherapyStatus.values[map['therapyStatus']]
+          : TherapyStatus.notStarted,
       notes: map['notes'],
       referralCode: map['referralCode'],
       isFromProvince: map['isFromProvince'] == 1,
