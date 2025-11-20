@@ -343,13 +343,19 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
                           labelText: 'Teléfono',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.phone),
+                          helperText: 'Convencional (7-9 dígitos) o Celular (10 dígitos)',
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'El teléfono es obligatorio';
                           }
-                          if (value.trim().length < 10) {
-                            return 'El teléfono debe tener al menos 10 dígitos';
+                          // Permitir teléfonos convencionales (7-9 dígitos) y celulares (10 dígitos)
+                          final phoneLength = value.trim().replaceAll(RegExp(r'[^0-9]'), '').length;
+                          if (phoneLength < 7) {
+                            return 'El teléfono debe tener al menos 7 dígitos';
+                          }
+                          if (phoneLength > 10) {
+                            return 'El teléfono no puede tener más de 10 dígitos';
                           }
                           return null;
                         },
