@@ -229,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 60),
                   
                   // Header con Logo y Título vertical
                   Column(
@@ -237,8 +237,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       // Logo MSP
                       Container(
-                        width: 80,
-                        height: 80,
+                        width: 60,
+                        height: 60,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -260,8 +260,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               // Letra "m"
                               Container(
-                                width: 14,
-                                height: 26,
+                                width: 11,
+                                height: 20,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFFD700),
                                   borderRadius: BorderRadius.circular(3),
@@ -271,7 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     'm',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 13,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -280,8 +280,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(width: 2),
                               // Letra "s"
                               Container(
-                                width: 14,
-                                height: 26,
+                                width: 11,
+                                height: 20,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF0066CC),
                                   borderRadius: BorderRadius.circular(3),
@@ -291,7 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     's',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 13,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -300,8 +300,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(width: 2),
                               // Letra "p"
                               Container(
-                                width: 14,
-                                height: 26,
+                                width: 11,
+                                height: 20,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE31E24),
                                   borderRadius: BorderRadius.circular(3),
@@ -311,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     'p',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 13,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -321,12 +321,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                       // Título
                       const Text(
                         'CERICITAS',
                         style: TextStyle(
-                          fontSize: 32,
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                           letterSpacing: 1.2,
@@ -334,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 60),
                   
                   // Campo Usuario
                   TextFormField(
