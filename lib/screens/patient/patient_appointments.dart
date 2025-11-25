@@ -1029,7 +1029,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                       Icon(Icons.info, color: Colors.blue[600]),
                       const SizedBox(width: 8),
                       const Text(
-                        'Asignación Automática',
+                        'Asignación Automática de Médico',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -1039,7 +1039,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'El sistema asignará automáticamente el médico disponible según la especialidad y fecha seleccionada.',
+                    'El sistema asignará automáticamente el médico fisioterapeuta disponible según la especialidad y fecha seleccionada. No es necesario seleccionar un médico específico.',
                     style: TextStyle(fontSize: 14),
                   ),
                 ],
@@ -1308,8 +1308,12 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     final doctors = _doctorsBySpecialty[_selectedSpecialty!] ?? [];
     if (doctors.isEmpty) return 'No hay doctores disponibles';
     
-    // Simular asignación automática basada en disponibilidad
-    final availableDoctor = doctors.first; // En la práctica, se verificaría disponibilidad real
+    // ASIGNACIÓN AUTOMÁTICA: El paciente NO puede seleccionar al doctor
+    // El sistema asigna automáticamente el doctor disponible según:
+    // 1. La especialidad seleccionada
+    // 2. La fecha preferida
+    // 3. La disponibilidad del doctor (horarios libres)
+    final availableDoctor = doctors.first; // En producción: verificar disponibilidad real en BD
     return '${availableDoctor.name} - $_selectedSpecialty';
   }
 
