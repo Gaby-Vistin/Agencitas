@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class PatientReminders extends StatefulWidget {
   final String patientId;
 
-  const PatientReminders({
-    Key? key,
-    required this.patientId,
-  }) : super(key: key);
+  const PatientReminders({Key? key, required this.patientId}) : super(key: key);
 
   @override
   State<PatientReminders> createState() => _PatientRemindersState();
@@ -30,7 +27,7 @@ class _PatientRemindersState extends State<PatientReminders> {
     try {
       // Simular carga de recordatorios
       await Future.delayed(const Duration(milliseconds: 300));
-      
+
       setState(() {
         _reminders = _generateReminders();
         _isLoading = false;
@@ -74,7 +71,7 @@ class _PatientRemindersState extends State<PatientReminders> {
         canReschedule: true,
         therapyInfo: TherapyInfo('Fisioterapia de Rodilla', 13, 15),
       ),
-      
+
       // Medicamentos
       ReminderItem(
         id: '3',
@@ -97,7 +94,7 @@ class _PatientRemindersState extends State<PatientReminders> {
         priority: ReminderPriority.medium,
         isRecurring: true,
       ),
-      
+
       // Exámenes
       ReminderItem(
         id: '5',
@@ -107,9 +104,13 @@ class _PatientRemindersState extends State<PatientReminders> {
         type: ReminderType.test,
         isRead: false,
         priority: ReminderPriority.medium,
-        testInfo: TestInfo('Análisis de sangre completo', 'Laboratorio Central', true),
+        testInfo: TestInfo(
+          'Análisis de sangre completo',
+          'Laboratorio Central',
+          true,
+        ),
       ),
-      
+
       // Ejercicios
       ReminderItem(
         id: '6',
@@ -120,9 +121,13 @@ class _PatientRemindersState extends State<PatientReminders> {
         isRead: true,
         priority: ReminderPriority.low,
         isRecurring: true,
-        exerciseInfo: ExerciseInfo('Caminata', '30 minutos', 'Intensidad moderada'),
+        exerciseInfo: ExerciseInfo(
+          'Caminata',
+          '30 minutos',
+          'Intensidad moderada',
+        ),
       ),
-      
+
       // Recordatorios pasados
       ReminderItem(
         id: '7',
@@ -162,10 +167,10 @@ class _PatientRemindersState extends State<PatientReminders> {
   }
 
   Widget _buildHeader() {
-    final upcomingCount = _reminders.where((r) => 
-      r.dateTime.isAfter(DateTime.now()) && !r.isRead
-    ).length;
-    
+    final upcomingCount = _reminders
+        .where((r) => r.dateTime.isAfter(DateTime.now()) && !r.isRead)
+        .length;
+
     final missedCount = _reminders.where((r) => r.isMissed && !r.isRead).length;
 
     return Container(
@@ -174,10 +179,7 @@ class _PatientRemindersState extends State<PatientReminders> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.green[700]!,
-            Colors.green[500]!,
-          ],
+          colors: [Colors.green[700]!, Colors.green[500]!],
         ),
       ),
       child: Column(
@@ -200,7 +202,7 @@ class _PatientRemindersState extends State<PatientReminders> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Estadísticas
           Row(
             children: [
@@ -237,7 +239,12 @@ class _PatientRemindersState extends State<PatientReminders> {
     );
   }
 
-  Widget _buildStatsCard(String title, String value, IconData icon, Color iconColor) {
+  Widget _buildStatsCard(
+    String title,
+    String value,
+    IconData icon,
+    Color iconColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -258,10 +265,7 @@ class _PatientRemindersState extends State<PatientReminders> {
           ),
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-            ),
+            style: const TextStyle(color: Colors.white, fontSize: 10),
             textAlign: TextAlign.center,
           ),
         ],
@@ -365,7 +369,9 @@ class _PatientRemindersState extends State<PatientReminders> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: reminder.isRead ? Colors.grey[600] : Colors.black,
+                            color: reminder.isRead
+                                ? Colors.grey[600]
+                                : Colors.black,
                           ),
                         ),
                         if (reminder.description.isNotEmpty)
@@ -383,9 +389,14 @@ class _PatientRemindersState extends State<PatientReminders> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: _getPriorityColor(reminder.priority).withOpacity(0.1),
+                          color: _getPriorityColor(
+                            reminder.priority,
+                          ).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -411,9 +422,9 @@ class _PatientRemindersState extends State<PatientReminders> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Información de tiempo
               Container(
                 padding: const EdgeInsets.all(8),
@@ -424,9 +435,17 @@ class _PatientRemindersState extends State<PatientReminders> {
                 child: Row(
                   children: [
                     Icon(
-                      isToday ? Icons.today : isPast ? Icons.history : Icons.schedule,
+                      isToday
+                          ? Icons.today
+                          : isPast
+                          ? Icons.history
+                          : Icons.schedule,
                       size: 16,
-                      color: isToday ? Colors.blue[600] : isPast ? Colors.red[600] : Colors.grey[600],
+                      color: isToday
+                          ? Colors.blue[600]
+                          : isPast
+                          ? Colors.red[600]
+                          : Colors.grey[600],
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -448,33 +467,33 @@ class _PatientRemindersState extends State<PatientReminders> {
                   ],
                 ),
               ),
-              
+
               // Información específica del tipo
               if (reminder.doctorInfo != null) ...[
                 const SizedBox(height: 8),
                 _buildDoctorInfo(reminder.doctorInfo!),
               ],
-              
+
               if (reminder.medicationInfo != null) ...[
                 const SizedBox(height: 8),
                 _buildMedicationInfo(reminder.medicationInfo!),
               ],
-              
+
               if (reminder.testInfo != null) ...[
                 const SizedBox(height: 8),
                 _buildTestInfo(reminder.testInfo!),
               ],
-              
+
               if (reminder.therapyInfo != null) ...[
                 const SizedBox(height: 8),
                 _buildTherapyInfo(reminder.therapyInfo!),
               ],
-              
+
               if (reminder.exerciseInfo != null) ...[
                 const SizedBox(height: 8),
                 _buildExerciseInfo(reminder.exerciseInfo!),
               ],
-              
+
               // Acciones
               if (reminder.canReschedule || reminder.isMissed) ...[
                 const SizedBox(height: 12),
@@ -510,12 +529,15 @@ class _PatientRemindersState extends State<PatientReminders> {
                   ],
                 ),
               ],
-              
+
               // Indicador de recurrencia
               if (reminder.isRecurring)
                 Container(
                   margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green[50],
                     borderRadius: BorderRadius.circular(12),
@@ -739,14 +761,14 @@ class _PatientRemindersState extends State<PatientReminders> {
   bool _isToday(DateTime dateTime) {
     final now = DateTime.now();
     return dateTime.year == now.year &&
-           dateTime.month == now.month &&
-           dateTime.day == now.day;
+        dateTime.month == now.month &&
+        dateTime.day == now.day;
   }
 
   String _getTimeUntilString(DateTime dateTime) {
     final now = DateTime.now();
     final difference = dateTime.difference(now);
-    
+
     if (difference.isNegative) {
       final pastDifference = now.difference(dateTime);
       if (pastDifference.inDays > 0) {
@@ -757,7 +779,7 @@ class _PatientRemindersState extends State<PatientReminders> {
         return 'Hace ${pastDifference.inMinutes} min';
       }
     }
-    
+
     if (difference.inDays > 0) {
       return 'En ${difference.inDays} día${difference.inDays > 1 ? 's' : ''}';
     } else if (difference.inHours > 0) {
@@ -780,9 +802,9 @@ class _PatientRemindersState extends State<PatientReminders> {
 
   void _filterReminders(ReminderFilter filter) {
     // Implementar filtrado de recordatorios
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Filtro ${filter.name} aplicado')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Filtro ${filter.name} aplicado')));
   }
 
   void _rescheduleReminder(ReminderItem reminder) {
@@ -814,7 +836,7 @@ class _PatientRemindersState extends State<PatientReminders> {
     setState(() {
       _reminders.remove(reminder);
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Recordatorio descartado'),
@@ -841,10 +863,7 @@ class _PatientRemindersState extends State<PatientReminders> {
             children: [
               const Text(
                 'Nuevo Recordatorio',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               const Text('Próximamente...'),
@@ -907,17 +926,9 @@ enum ReminderType {
   treatment,
 }
 
-enum ReminderPriority {
-  low,
-  medium,
-  high,
-}
+enum ReminderPriority { low, medium, high }
 
-enum ReminderFilter {
-  today,
-  upcoming,
-  missed,
-}
+enum ReminderFilter { today, upcoming, missed }
 
 class DoctorInfo {
   final String name;

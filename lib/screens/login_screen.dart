@@ -4,6 +4,7 @@ import '../models/user.dart';
 import 'director/director_dashboard.dart';
 import 'doctor/doctor_dashboard.dart';
 import 'patient/patient_dashboard.dart';
+import 'receptionist/receptionist_dashboard.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -80,9 +81,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (_validCredentials.containsKey(username) && 
+    if (_validCredentials.containsKey(username) &&
         _validCredentials[username] == password) {
-      
       // Verificar si es el director para redirigir al panel especial
       if (username == 'director') {
         // Buscar el usuario director
@@ -97,10 +97,10 @@ class _LoginScreenState extends State<LoginScreen> {
             createdAt: DateTime.now(),
           ),
         );
-        
+
         // Establecer sesión
         SessionManager.login(directorUser);
-        
+
         // Navegar al panel del director
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -122,10 +122,10 @@ class _LoginScreenState extends State<LoginScreen> {
             createdAt: DateTime.now(),
           ),
         );
-        
+
         // Establecer sesión
         SessionManager.login(doctorUser);
-        
+
         // Navegar al panel del doctor
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -147,10 +147,10 @@ class _LoginScreenState extends State<LoginScreen> {
             createdAt: DateTime.now(),
           ),
         );
-        
+
         // Establecer sesión
         SessionManager.login(patientUser);
-        
+
         // Navegar al panel del paciente
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -159,13 +159,33 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         }
+      } else if (username == 'recepcionista') {
+        // Buscar el usuario recepcionista
+        final receptionistUser = User(
+          username: 'recepcionista',
+          displayName: 'Laura Fernández',
+          email: 'recepcion@agencitas.com',
+          role: UserRole.receptionist,
+          isActive: true,
+          createdAt: DateTime.now(),
+        );
+        
+        // Establecer sesión
+        SessionManager.login(receptionistUser);
+        
+        // Navegar al panel de recepcionista
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => ReceptionistDashboard(receptionist: receptionistUser),
+            ),
+          );
+        }
       } else {
         // Login exitoso para otros usuarios - ir al HomeScreen original
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const HomeScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
           );
         }
       }
@@ -174,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _isLoading = false;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -196,7 +216,10 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Usuarios disponibles:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              'Usuarios disponibles:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 8),
             Text('• admin / admin123'),
             Text('• director / director123'),
@@ -240,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 60),
-                  
+
                   // Header con Logo y Título vertical
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -345,7 +368,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 50),
-                  
+
                   // Campo Usuario
                   TextFormField(
                     controller: _usernameController,
@@ -357,7 +380,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -367,7 +393,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Campo Contraseña
                   TextFormField(
                     controller: _passwordController,
@@ -379,7 +405,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       hintStyle: TextStyle(color: Colors.grey[400]),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                          _isPasswordVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: Colors.grey[600],
                           size: 22,
                         ),
@@ -392,7 +420,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -405,7 +436,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // Link ¿Olvidaste tu contraseña?
                   Align(
                     alignment: Alignment.centerRight,
@@ -434,7 +465,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Botón Iniciar Sesión
                   SizedBox(
                     height: 50,
@@ -454,7 +485,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : const Text(
@@ -467,7 +500,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Botón de ayuda
                   TextButton.icon(
                     onPressed: _showCredentialsInfo,
@@ -478,14 +511,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  
+
                   // Texto de versión
                   Text(
                     'v1.0.0 - Ministerio de Salud Pública',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     textAlign: TextAlign.center,
                   ),
                 ],
