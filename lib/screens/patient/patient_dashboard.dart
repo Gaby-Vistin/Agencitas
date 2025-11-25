@@ -7,6 +7,7 @@ import 'patient_schedule.dart';
 import 'patient_history.dart';
 import 'patient_reminders.dart';
 import '../patient_edit_screen.dart';
+import '../change_password_screen.dart';
 
 class PatientDashboard extends StatefulWidget {
   final User patient;
@@ -54,10 +55,42 @@ class _PatientDashboardState extends State<PatientDashboard> {
             onPressed: () => _showProfile(),
             tooltip: 'Mi Perfil',
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _logout(context),
-            tooltip: 'Cerrar Sesión',
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'change_password') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChangePasswordScreen(user: widget.patient),
+                  ),
+                );
+              } else if (value == 'logout') {
+                _logout(context);
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'change_password',
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_reset, color: Colors.black87),
+                    SizedBox(width: 12),
+                    Text('Cambiar Contraseña'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red),
+                    SizedBox(width: 12),
+                    Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

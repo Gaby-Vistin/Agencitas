@@ -6,6 +6,7 @@ import 'director_doctors.dart';
 import 'director_patients.dart';
 import 'director_therapy_status.dart';
 import 'director_schedules.dart';
+import '../change_password_screen.dart';
 
 class DirectorDashboard extends StatefulWidget {
   final User director;
@@ -46,10 +47,42 @@ class _DirectorDashboardState extends State<DirectorDashboard> {
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _logout(context),
-            tooltip: 'Cerrar Sesión',
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'change_password') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChangePasswordScreen(user: widget.director),
+                  ),
+                );
+              } else if (value == 'logout') {
+                _logout(context);
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'change_password',
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_reset, color: Colors.black87),
+                    SizedBox(width: 12),
+                    Text('Cambiar Contraseña'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red),
+                    SizedBox(width: 12),
+                    Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

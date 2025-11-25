@@ -4,6 +4,7 @@ import 'doctor_appointments.dart';
 import 'doctor_patients.dart';
 import 'doctor_schedule.dart';
 import 'doctor_statistics.dart';
+import '../change_password_screen.dart';
 
 class DoctorDashboard extends StatefulWidget {
   final User doctor;
@@ -47,10 +48,42 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
             onPressed: () => _showNotifications(),
             tooltip: 'Notificaciones',
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _logout(context),
-            tooltip: 'Cerrar Sesión',
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'change_password') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChangePasswordScreen(user: widget.doctor),
+                  ),
+                );
+              } else if (value == 'logout') {
+                _logout(context);
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'change_password',
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_reset, color: Colors.black87),
+                    SizedBox(width: 12),
+                    Text('Cambiar Contraseña'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red),
+                    SizedBox(width: 12),
+                    Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
