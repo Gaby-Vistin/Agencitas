@@ -231,8 +231,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const SizedBox(height: 40),
                   
-                  // Header con Logo y Título en horizontal
-                  Row(
+                  // Header con Logo y Título vertical
+                  Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Logo MSP
@@ -321,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 20),
+                      const SizedBox(height: 20),
                       // Título
                       const Text(
                         'CERICITAS',
@@ -450,6 +450,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }
