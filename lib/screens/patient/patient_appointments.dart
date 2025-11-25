@@ -923,33 +923,14 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   String? _referralCode;
   
   List<String> _specialties = [
-    'Cardiología',
-    'Neurología',
-    'Pediatría',
     'Fisioterapia',
-    'Medicina General',
-    'Dermatología',
   ];
   
   Map<String, List<DoctorInfo>> _doctorsBySpecialty = {
-    'Cardiología': [
-      DoctorInfo('Dr. María García', 'doctor1'),
-      DoctorInfo('Dr. Roberto Silva', 'doctor2'),
-    ],
-    'Neurología': [
-      DoctorInfo('Dr. Carlos Rodríguez', 'doctor3'),
-    ],
-    'Pediatría': [
-      DoctorInfo('Dra. Ana Martínez', 'doctor4'),
-    ],
     'Fisioterapia': [
-      DoctorInfo('Dr. Luis Hernández', 'doctor5'),
-    ],
-    'Medicina General': [
-      DoctorInfo('Dra. Carmen López', 'doctor6'),
-    ],
-    'Dermatología': [
-      DoctorInfo('Dr. Fernando Cruz', 'doctor7'),
+      DoctorInfo('Dr. Luis Hernández', 'doctor1'),
+      DoctorInfo('Dra. María Rodríguez', 'doctor2'),
+      DoctorInfo('Dr. Carlos Mendoza', 'doctor3'),
     ],
   };
   

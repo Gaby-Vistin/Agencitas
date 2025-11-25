@@ -165,25 +165,25 @@ class DatabaseService {
   Future<void> _insertSampleData(Database db) async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    // Insert sample doctors
+    // Insert sample doctors - SOLO FISIOTERAPIA
     await db.insert('doctors', {
-      'name': 'María',
-      'lastName': 'González',
-      'specialty': 'Medicina General',
-      'license': 'MED001',
-      'email': 'maria.gonzalez@agencitas.com',
+      'name': 'Luis',
+      'lastName': 'Hernández',
+      'specialty': 'Fisioterapia',
+      'license': 'FISIO001',
+      'email': 'luis.hernandez@agencitas.com',
       'phone': '0999123456',
-      'appointmentDuration': 30,
+      'appointmentDuration': 45,
       'isActive': 1,
       'createdAt': now,
     });
 
     await db.insert('doctors', {
-      'name': 'Carlos',
+      'name': 'María',
       'lastName': 'Rodríguez',
-      'specialty': 'Cardiología',
-      'license': 'MED002',
-      'email': 'carlos.rodriguez@agencitas.com',
+      'specialty': 'Fisioterapia',
+      'license': 'FISIO002',
+      'email': 'maria.rodriguez@agencitas.com',
       'phone': '0999234567',
       'appointmentDuration': 45,
       'isActive': 1,
@@ -191,13 +191,13 @@ class DatabaseService {
     });
 
     await db.insert('doctors', {
-      'name': 'Ana',
-      'lastName': 'Martínez',
-      'specialty': 'Pediatría',
-      'license': 'MED003',
-      'email': 'ana.martinez@agencitas.com',
+      'name': 'Carlos',
+      'lastName': 'Mendoza',
+      'specialty': 'Fisioterapia',
+      'license': 'FISIO003',
+      'email': 'carlos.mendoza@agencitas.com',
       'phone': '0999345678',
-      'appointmentDuration': 30,
+      'appointmentDuration': 45,
       'isActive': 1,
       'createdAt': now,
     });
@@ -469,13 +469,13 @@ class DatabaseService {
     return [
       doctor_models.Doctor(
         id: 1,
-        name: 'María',
-        lastName: 'González',
-        specialty: 'Medicina General',
-        license: 'MED001',
-        email: 'maria.gonzalez@cericitas.com',
+        name: 'Luis',
+        lastName: 'Hernández',
+        specialty: 'Fisioterapia',
+        license: 'FISIO001',
+        email: 'luis.hernandez@cericitas.com',
         phone: '0999123456',
-        appointmentDuration: 30,
+        appointmentDuration: 45,
         isActive: true,
         createdAt: now,
         schedule: [
@@ -518,11 +518,11 @@ class DatabaseService {
       ),
       doctor_models.Doctor(
         id: 2,
-        name: 'Carlos',
+        name: 'María',
         lastName: 'Rodríguez',
-        specialty: 'Cardiología',
-        license: 'MED002',
-        email: 'carlos.rodriguez@cericitas.com',
+        specialty: 'Fisioterapia',
+        license: 'FISIO002',
+        email: 'maria.rodriguez@cericitas.com',
         phone: '0999234567',
         appointmentDuration: 45,
         isActive: true,
@@ -553,13 +553,13 @@ class DatabaseService {
       ),
       doctor_models.Doctor(
         id: 3,
-        name: 'Ana',
-        lastName: 'Martínez',
-        specialty: 'Pediatría',
-        license: 'MED003',
-        email: 'ana.martinez@cericitas.com',
+        name: 'Carlos',
+        lastName: 'Mendoza',
+        specialty: 'Fisioterapia',
+        license: 'FISIO003',
+        email: 'carlos.mendoza@cericitas.com',
         phone: '0999345678',
-        appointmentDuration: 30,
+        appointmentDuration: 45,
         isActive: true,
         createdAt: now,
         schedule: [

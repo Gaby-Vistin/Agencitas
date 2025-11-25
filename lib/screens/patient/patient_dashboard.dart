@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
+import '../../models/patient.dart';
+import '../../services/database_service.dart';
 import 'patient_appointments.dart';
 import 'patient_schedule.dart';
 import 'patient_history.dart';
 import 'patient_reminders.dart';
+import '../patient_edit_screen.dart';
 
 class PatientDashboard extends StatefulWidget {
   final User patient;
@@ -272,13 +275,56 @@ class _PatientDashboardState extends State<PatientDashboard> {
     );
   }
 
-  void _editProfile() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Función: Editar perfil del paciente'),
-        backgroundColor: Colors.blue,
-      ),
-    );
+  Future<void> _editProfile() async {
+    // Buscar el paciente completo en la base de datos
+    try {
+      final dbService = DatabaseService();
+      final patients = await dbService.getAllPatients();
+      
+      // Buscar el paciente que coincida con el email del usuario
+      final patient = patients.firstWhere(
+        (p) => p.email == widget.patient.email,
+        orElse: () => Patient(
+          name: widget.patient.displayName.split(' ').first,
+          lastName: widget.patient.displayName.split(' ').length > 1 
+              ? widget.patient.displayName.split(' ').sublist(1).join(' ')
+              : '',
+          identification: '0000000000',
+          email: widget.patient.email,
+          phone: '0000000000',
+          birthDate: DateTime.now().subtract(const Duration(days: 365 * 25)),
+          address: 'No especificada',
+          isFromProvince: false,
+          createdAt: DateTime.now(),
+        ),
+      );
+      
+      if (mounted) {
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => PatientEditScreen(patient: patient),
+          ),
+        );
+        
+        if (result == true && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Perfil actualizado exitosamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar el perfil: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _logout(BuildContext context) {

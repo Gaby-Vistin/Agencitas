@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/patient.dart';
 import '../../models/appointment.dart';
+import '../patient_edit_screen.dart';
 
 class DirectorPatients extends StatefulWidget {
   const DirectorPatients({Key? key}) : super(key: key);
@@ -743,7 +744,7 @@ class _DirectorPatientsState extends State<DirectorPatients> {
   void _handlePatientAction(Patient patient, String action) {
     switch (action) {
       case 'edit':
-        _showPatientForm();
+        _editPatient(patient);
         break;
       case 'schedule':
         _scheduleAppointment(patient);
@@ -752,6 +753,17 @@ class _DirectorPatientsState extends State<DirectorPatients> {
       case 'deactivate':
         _togglePatientStatus(patient);
         break;
+    }
+  }
+  
+  Future<void> _editPatient(Patient patient) async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PatientEditScreen(patient: patient),
+      ),
+    );
+    if (result == true) {
+      _loadPatients();
     }
   }
 

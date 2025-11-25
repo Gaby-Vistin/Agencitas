@@ -9,11 +9,7 @@ class Province {
   final String capital;
   final String code;
 
-  Province({
-    required this.name,
-    required this.capital,
-    required this.code,
-  });
+  Province({required this.name, required this.capital, required this.code});
 
   String get displayName => '$name - $capital';
 }
@@ -42,7 +38,11 @@ final List<Province> ecuadorianProvinces = [
   Province(name: 'Galápagos', capital: 'Puerto Baquerizo Moreno', code: '20'),
   Province(name: 'Sucumbíos', capital: 'Nueva Loja', code: '21'),
   Province(name: 'Orellana', capital: 'Francisco de Orellana', code: '22'),
-  Province(name: 'Santo Domingo de los Tsáchilas', capital: 'Santo Domingo', code: '24'),
+  Province(
+    name: 'Santo Domingo de los Tsáchilas',
+    capital: 'Santo Domingo',
+    code: '24',
+  ),
   Province(name: 'Santa Elena', capital: 'Santa Elena', code: '26'),
 ];
 
@@ -50,7 +50,8 @@ class PatientRegistrationScreen extends StatefulWidget {
   const PatientRegistrationScreen({super.key});
 
   @override
-  State<PatientRegistrationScreen> createState() => _PatientRegistrationScreenState();
+  State<PatientRegistrationScreen> createState() =>
+      _PatientRegistrationScreenState();
 }
 
 class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
@@ -62,8 +63,10 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _referralCodeController = TextEditingController();
-  
-  DateTime _selectedBirthDate = DateTime.now().subtract(const Duration(days: 365 * 18));
+
+  DateTime _selectedBirthDate = DateTime.now().subtract(
+    const Duration(days: 365 * 18),
+  );
   bool _isFromProvince = false;
   bool _isLoading = false;
   Province? _selectedProvince;
@@ -129,7 +132,9 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Pacientes de provincia requieren código de referencia'),
+                content: Text(
+                  'Pacientes de provincia requieren código de referencia',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -160,7 +165,9 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Este código no es válido para pacientes de provincia'),
+                  content: Text(
+                    'Este código no es válido para pacientes de provincia',
+                  ),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -179,8 +186,8 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
         phone: _phoneController.text.trim(),
         birthDate: _selectedBirthDate,
         address: _addressController.text.trim(),
-        referralCode: _referralCodeController.text.trim().isNotEmpty 
-            ? _referralCodeController.text.trim() 
+        referralCode: _referralCodeController.text.trim().isNotEmpty
+            ? _referralCodeController.text.trim()
             : null,
         isFromProvince: _isFromProvince,
         createdAt: DateTime.now(),
@@ -343,14 +350,18 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
                           labelText: 'Teléfono',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.phone),
-                          helperText: 'Convencional (7-9 dígitos) o Celular (10 dígitos)',
+                          helperText:
+                              'Convencional (7-9 dígitos) o Celular (10 dígitos)',
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'El teléfono es obligatorio';
                           }
                           // Permitir teléfonos convencionales (7-9 dígitos) y celulares (10 dígitos)
-                          final phoneLength = value.trim().replaceAll(RegExp(r'[^0-9]'), '').length;
+                          final phoneLength = value
+                              .trim()
+                              .replaceAll(RegExp(r'[^0-9]'), '')
+                              .length;
                           if (phoneLength < 7) {
                             return 'El teléfono debe tener al menos 7 dígitos';
                           }
@@ -394,7 +405,9 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
                       const SizedBox(height: 16),
                       CheckboxListTile(
                         title: const Text('Paciente de Provincia'),
-                        subtitle: const Text('Requiere código de referencia especial'),
+                        subtitle: const Text(
+                          'Requiere código de referencia especial',
+                        ),
                         value: _isFromProvince,
                         onChanged: (value) {
                           setState(() {
@@ -420,11 +433,14 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
                                 labelText: 'Provincia de Origen *',
                                 border: OutlineInputBorder(),
                                 prefixIcon: Icon(Icons.location_on),
-                                helperText: 'Seleccione su provincia para generar el código',
+                                helperText:
+                                    'Seleccione su provincia para generar el código',
                               ),
                               hint: const Text('Seleccionar Provincia'),
                               isExpanded: true, // Para evitar overflow
-                              items: ecuadorianProvinces.map((Province province) {
+                              items: ecuadorianProvinces.map((
+                                Province province,
+                              ) {
                                 return DropdownMenuItem<Province>(
                                   value: province,
                                   child: Text(
@@ -438,7 +454,8 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
                                 setState(() {
                                   _selectedProvince = newValue;
                                   if (newValue != null) {
-                                    _referralCodeController.text = newValue.code;
+                                    _referralCodeController.text =
+                                        newValue.code;
                                   } else {
                                     _referralCodeController.clear();
                                   }
@@ -456,23 +473,31 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withOpacity(0.3),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
                                     Icon(
                                       Icons.qr_code,
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Código generado: ${_selectedProvince!.code}',
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.primary,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),

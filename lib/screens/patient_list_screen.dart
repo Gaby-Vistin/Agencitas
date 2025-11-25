@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../services/database_service.dart';
 import '../widgets/logout_button.dart';
+import 'patient_edit_screen.dart';
 
 class PatientListScreen extends StatefulWidget {
   final bool showOnlyActive;
@@ -225,6 +226,25 @@ class _PatientListScreenState extends State<PatientListScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cerrar'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              final result = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => PatientEditScreen(patient: patient),
+                ),
+              );
+              if (result == true) {
+                _loadPatients();
+              }
+            },
+            icon: const Icon(Icons.edit),
+            label: const Text('Editar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[700],
+              foregroundColor: Colors.white,
+            ),
           ),
         ],
       ),
