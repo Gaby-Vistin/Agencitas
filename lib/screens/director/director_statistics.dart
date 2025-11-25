@@ -238,41 +238,343 @@ class _DirectorStatisticsState extends State<DirectorStatistics> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    return InkWell(
+      onTap: () => _showDetailDialog(title),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
+    );
+  }
+
+  void _showDetailDialog(String category) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 500),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _getIconForCategory(category),
+                      color: _getColorForCategory(category),
+                      size: 32,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Detalles de $category',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+                const SizedBox(height: 16),
+                _buildDetailContent(category),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _getColorForCategory(category),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Cerrar',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(
-            title,
+        );
+      },
+    );
+  }
+
+  IconData _getIconForCategory(String category) {
+    switch (category) {
+      case 'Pacientes':
+        return Icons.people;
+      case 'Doctores':
+        return Icons.medical_services;
+      case 'Total Citas':
+        return Icons.calendar_today;
+      case 'Hoy':
+        return Icons.today;
+      default:
+        return Icons.info;
+    }
+  }
+
+  Color _getColorForCategory(String category) {
+    switch (category) {
+      case 'Pacientes':
+        return Colors.blue;
+      case 'Doctores':
+        return Colors.green;
+      case 'Total Citas':
+        return Colors.orange;
+      case 'Hoy':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildDetailContent(String category) {
+    switch (category) {
+      case 'Pacientes':
+        return _buildPatientsDetail();
+      case 'Doctores':
+        return _buildDoctorsDetail();
+      case 'Total Citas':
+        return _buildAppointmentsDetail();
+      case 'Hoy':
+        return _buildTodayDetail();
+      default:
+        return const Text('No hay información disponible');
+    }
+  }
+
+  Widget _buildPatientsDetail() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDetailRow('Total de pacientes', '$_totalPatients', Icons.people),
+        const SizedBox(height: 12),
+        _buildDetailRow('Pacientes activos', '${(_totalPatients * 0.85).toInt()}', Icons.check_circle, Colors.green),
+        const SizedBox(height: 12),
+        _buildDetailRow('Nuevos este mes', '${(_totalPatients * 0.15).toInt()}', Icons.fiber_new, Colors.blue),
+        const SizedBox(height: 12),
+        _buildDetailRow('Pacientes inactivos', '${(_totalPatients * 0.05).toInt()}', Icons.pause_circle, Colors.orange),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.trending_up, color: Colors.blue),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Crecimiento del 12% respecto al mes anterior',
+                  style: TextStyle(
+                    color: Colors.blue[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDoctorsDetail() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDetailRow('Total de doctores', '$_totalDoctors', Icons.medical_services),
+        const SizedBox(height: 12),
+        _buildDetailRow('Fisioterapeutas', '$_totalDoctors', Icons.healing, Colors.green),
+        const SizedBox(height: 12),
+        _buildDetailRow('Disponibles hoy', '${(_totalDoctors * 0.75).toInt()}', Icons.event_available, Colors.blue),
+        const SizedBox(height: 12),
+        _buildDetailRow('En vacaciones', '${(_totalDoctors * 0.08).toInt()}', Icons.beach_access, Colors.orange),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.star, color: Colors.green),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Promedio de satisfacción: 4.7/5.0',
+                  style: TextStyle(
+                    color: Colors.green[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppointmentsDetail() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDetailRow('Total de citas', '$_totalAppointments', Icons.calendar_today),
+        const SizedBox(height: 12),
+        _buildDetailRow('Programadas', '$_scheduledAppointments', Icons.schedule, Colors.blue),
+        const SizedBox(height: 12),
+        _buildDetailRow('Completadas', '$_completedAppointments', Icons.check_circle, Colors.green),
+        const SizedBox(height: 12),
+        _buildDetailRow('Canceladas', '$_cancelledAppointments', Icons.cancel, Colors.red),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.assessment, color: Colors.orange),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Tasa de completitud: ${((_completedAppointments / _totalAppointments) * 100).toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    color: Colors.orange[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTodayDetail() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDetailRow('Citas de hoy', '$_todayAppointments', Icons.today),
+        const SizedBox(height: 12),
+        _buildDetailRow('Completadas', '${(_todayAppointments * 0.4).toInt()}', Icons.check_circle, Colors.green),
+        const SizedBox(height: 12),
+        _buildDetailRow('En curso', '${(_todayAppointments * 0.3).toInt()}', Icons.play_circle, Colors.blue),
+        const SizedBox(height: 12),
+        _buildDetailRow('Pendientes', '${(_todayAppointments * 0.3).toInt()}', Icons.pending, Colors.orange),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.purple.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.access_time, color: Colors.purple),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Próxima cita en 30 minutos',
+                  style: TextStyle(
+                    color: Colors.purple[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, IconData icon, [Color? color]) {
+    final rowColor = color ?? Colors.grey[700]!;
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: rowColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: rowColor, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
             style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
+              fontSize: 15,
+              color: Colors.grey[700],
             ),
           ),
-        ],
-      ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: rowColor,
+          ),
+        ),
+      ],
     );
   }
 

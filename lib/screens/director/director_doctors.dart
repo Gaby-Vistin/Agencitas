@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/doctor.dart';
 import '../../models/appointment.dart';
+import '../doctor_edit_screen.dart';
 
 class DirectorDoctors extends StatefulWidget {
   const DirectorDoctors({Key? key}) : super(key: key);
@@ -550,7 +551,7 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
   void _handleDoctorAction(Doctor doctor, String action) {
     switch (action) {
       case 'edit':
-        _showDoctorForm();
+        _editDoctor(doctor);
         break;
       case 'activate':
       case 'deactivate':
@@ -559,6 +560,19 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
       case 'delete':
         _showDeleteConfirmation(doctor);
         break;
+    }
+  }
+
+  Future<void> _editDoctor(Doctor doctor) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DoctorEditScreen(doctor: doctor),
+      ),
+    );
+
+    if (result == true) {
+      _loadDoctors(); // Recargar la lista después de editar
     }
   }
 
