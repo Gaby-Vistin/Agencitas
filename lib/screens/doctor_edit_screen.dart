@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../models/doctor.dart';
-import '../services/database_service.dart';
 
 class DoctorEditScreen extends StatefulWidget {
   final Doctor doctor;
@@ -62,6 +60,8 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
         appointmentDuration: widget.doctor.appointmentDuration,
         isActive: widget.doctor.isActive,
         schedule: widget.doctor.schedule,
+        createdAt: widget.doctor.createdAt,
+        updatedAt: DateTime.now(),
       );
 
       // Aquí se actualizaría en la base de datos
