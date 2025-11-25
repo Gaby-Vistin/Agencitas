@@ -26,35 +26,38 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
     });
 
     await Future.delayed(const Duration(milliseconds: 300));
-    
+
     // Doctores de ejemplo (Fisioterapia)
     setState(() {
       _doctors = [
         Doctor(
-          id: '1',
+          id: 1,
           name: 'María',
           lastName: 'González',
-          specialization: 'Fisioterapia',
+          specialty: 'Fisioterapia',
+          license: 'MSP-FIS-001',
           email: 'maria.gonzalez@cericitas.com',
           phone: '0991234567',
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         ),
         Doctor(
-          id: '2',
+          id: 2,
           name: 'Carlos',
           lastName: 'Rodríguez',
-          specialization: 'Fisioterapia',
+          specialty: 'Fisioterapia',
+          license: 'MSP-FIS-002',
           email: 'carlos.rodriguez@cericitas.com',
           phone: '0991234568',
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         ),
         Doctor(
-          id: '3',
+          id: 3,
           name: 'Ana',
           lastName: 'Martínez',
-          specialization: 'Fisioterapia',
+          specialty: 'Fisioterapia',
+          license: 'MSP-FIS-003',
           email: 'ana.martinez@cericitas.com',
           phone: '0991234569',
           createdAt: DateTime.now(),
@@ -149,44 +152,49 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredDoctors.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No se encontraron médicos',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Colors.grey[400],
                         ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadDoctors,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredDoctors.length,
-                          itemBuilder: (context, index) {
-                            final doctor = _filteredDoctors[index];
-                            return _buildDoctorCard(doctor);
-                          },
+                        const SizedBox(height: 16),
+                        Text(
+                          'No se encontraron médicos',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                      ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadDoctors,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _filteredDoctors.length,
+                      itemBuilder: (context, index) {
+                        final doctor = _filteredDoctors[index];
+                        return _buildDoctorCard(doctor);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Column(
       children: [
         Icon(icon, size: 32, color: color),
@@ -199,13 +207,7 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
             color: color,
           ),
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }
@@ -214,9 +216,7 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => _viewDoctorDetails(doctor),
@@ -254,10 +254,14 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.medical_services, size: 16, color: Colors.grey[600]),
+                            Icon(
+                              Icons.medical_services,
+                              size: 16,
+                              color: Colors.grey[600],
+                            ),
                             const SizedBox(width: 4),
                             Text(
-                              doctor.specialization,
+                              doctor.specialty,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[600],
@@ -315,7 +319,7 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow('Especialidad', doctor.specialization),
+            _buildDetailRow('Especialidad', doctor.specialty),
             _buildDetailRow('Email', doctor.email),
             _buildDetailRow('Teléfono', doctor.phone),
           ],
@@ -353,9 +357,7 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          Expanded(
-            child: Text(value),
-          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );
@@ -364,9 +366,7 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
   void _editDoctor(Doctor doctor) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => DoctorEditScreen(doctor: doctor),
-      ),
+      MaterialPageRoute(builder: (context) => DoctorEditScreen(doctor: doctor)),
     );
 
     if (result == true) {
