@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     // Simular delay de autenticación
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();

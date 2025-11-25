@@ -42,7 +42,7 @@ class _DoctorAppointmentsState extends State<DoctorAppointments> with TickerProv
 
     try {
       // Simulación de carga de citas del doctor
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       // En una aplicación real, filtrarías por doctor ID
       // final appointments = await db.getAppointmentsByDoctor(widget.doctorId);

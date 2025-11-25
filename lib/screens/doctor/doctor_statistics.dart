@@ -41,7 +41,7 @@ class _DoctorStatisticsState extends State<DoctorStatistics> {
 
     try {
       // Simulación de carga de datos del doctor específico
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       // En una aplicación real, aquí filtrarías por doctor ID
       // final appointments = await db.getAppointmentsByDoctor(widget.doctorId);

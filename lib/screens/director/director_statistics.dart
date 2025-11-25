@@ -39,7 +39,7 @@ class _DirectorStatisticsState extends State<DirectorStatistics> {
 
     try {
       // Simular carga de datos desde la base de datos
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       // Datos de ejemplo para la demostración
       setState(() {

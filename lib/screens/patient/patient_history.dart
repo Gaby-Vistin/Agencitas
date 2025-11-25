@@ -40,7 +40,7 @@ class _PatientHistoryState extends State<PatientHistory> with SingleTickerProvid
 
     try {
       // Simular carga de historial médico
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       setState(() {
         _medicalHistory = _generateMedicalHistory();

@@ -32,7 +32,7 @@ class _DirectorAppointmentsState extends State<DirectorAppointments> {
     try {
       // Simulación de carga de datos
       // En una aplicación real, aquí cargarías desde la base de datos
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       setState(() {
         _appointments = []; // Cargar de la base de datos

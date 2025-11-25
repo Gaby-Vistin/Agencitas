@@ -71,7 +71,7 @@ class _PatientAppointmentsState extends State<PatientAppointments> with SingleTi
 
     try {
       // Simular carga de citas del paciente
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       setState(() {
         _appointments = _generateSampleAppointments();
@@ -1334,7 +1334,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
 
     try {
       // Simular proceso de agendamiento
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(milliseconds: 500));
       
       // Aquí se realizaría la lógica real de asignación automática
       final assignedDoctor = _getAssignedDoctor();

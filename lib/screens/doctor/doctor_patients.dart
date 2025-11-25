@@ -32,7 +32,7 @@ class _DoctorPatientsState extends State<DoctorPatients> {
 
     try {
       // Simulación de carga de pacientes asignados al doctor
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       setState(() {
         _patients = _generateSamplePatients();

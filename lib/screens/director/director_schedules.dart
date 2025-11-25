@@ -26,7 +26,7 @@ class _DirectorSchedulesState extends State<DirectorSchedules> {
 
     try {
       // Simular carga de horarios de doctores
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       setState(() {
         _doctorSchedules = _generateSampleSchedules();

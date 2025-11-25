@@ -30,7 +30,7 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
     try {
       // Simulación de carga de datos
       // En una aplicación real, aquí cargarías desde la base de datos
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       setState(() {
         _doctors = []; // Cargar desde la base de datos

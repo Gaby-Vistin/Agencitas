@@ -30,7 +30,7 @@ class _PatientScheduleState extends State<PatientSchedule> {
 
     try {
       // Simular carga de agenda del paciente
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       setState(() {
         _events = _generateSampleEvents();
