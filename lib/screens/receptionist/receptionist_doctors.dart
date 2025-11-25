@@ -25,8 +25,6 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
       _isLoading = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 300));
-
     // Doctores de ejemplo (Fisioterapia)
     setState(() {
       _doctors = [

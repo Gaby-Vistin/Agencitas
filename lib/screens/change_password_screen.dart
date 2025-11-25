@@ -52,7 +52,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     });
 
     // Simular proceso de cambio de contraseña
-    await Future.delayed(const Duration(milliseconds: 500));
 
     final currentPassword = _currentPasswordController.text.trim();
     final newPassword = _newPasswordController.text.trim();

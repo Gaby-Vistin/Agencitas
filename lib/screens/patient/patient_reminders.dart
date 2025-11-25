@@ -26,7 +26,6 @@ class _PatientRemindersState extends State<PatientReminders> {
 
     try {
       // Simular carga de recordatorios
-      await Future.delayed(const Duration(milliseconds: 300));
 
       setState(() {
         _reminders = _generateReminders();

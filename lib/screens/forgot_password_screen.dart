@@ -31,7 +31,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
 
     // Simular envío de correo
-    await Future.delayed(const Duration(milliseconds: 500));
 
     setState(() {
       _isLoading = false;
