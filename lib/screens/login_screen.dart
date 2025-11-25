@@ -169,15 +169,16 @@ class _LoginScreenState extends State<LoginScreen> {
           isActive: true,
           createdAt: DateTime.now(),
         );
-        
+
         // Establecer sesión
         SessionManager.login(receptionistUser);
-        
+
         // Navegar al panel de recepcionista
         if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (context) => ReceptionistDashboard(receptionist: receptionistUser),
+              builder: (context) =>
+                  ReceptionistDashboard(receptionist: receptionistUser),
             ),
           );
         }
