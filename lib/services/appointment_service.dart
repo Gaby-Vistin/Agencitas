@@ -21,7 +21,9 @@ class AppointmentService {
   }) async {
     // Check if patient is active
     if (!patient.isActive) {
-      return AppointmentValidationResult.error('El paciente no está activo en el sistema');
+      return AppointmentValidationResult.error(
+        'El paciente no está activo en el sistema',
+      );
     }
 
     // Check if patient can schedule appointments (max 2 missed appointments)
@@ -50,9 +52,30 @@ class AppointmentService {
 
       // Lista de códigos de provincia válidos (códigos oficiales de Ecuador)
       const validProvinceCodes = {
-        '01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
-        '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
-        '21', '22', '24', '26'
+        '01',
+        '02',
+        '03',
+        '04',
+        '05',
+        '06',
+        '07',
+        '08',
+        '09',
+        '10',
+        '11',
+        '12',
+        '13',
+        '14',
+        '15',
+        '16',
+        '17',
+        '18',
+        '19',
+        '20',
+        '21',
+        '22',
+        '24',
+        '26',
       };
 
       // Si es un código de provincia válido, aceptarlo directamente
@@ -62,7 +85,9 @@ class AppointmentService {
         // Validar contra la base de datos para códigos regulares
         final code = await _dbService.getReferralCodeByCode(referralCode);
         if (code == null || !code.isValid) {
-          return AppointmentValidationResult.error('Código de referencia inválido o expirado');
+          return AppointmentValidationResult.error(
+            'Código de referencia inválido o expirado',
+          );
         }
 
         if (patient.isFromProvince && !code.isForProvince) {
@@ -107,12 +132,15 @@ class AppointmentService {
     }
 
     // Check if doctor works on this day
-    final dayOfWeek = doctor_models.DayOfWeek.values[appointmentDate.weekday - 1];
-    final hasSchedule = doctor.schedule.any((s) => 
-        s.dayOfWeek == dayOfWeek && 
-        s.isActive &&
-        !appointmentTime.isBefore(s.startTime) && 
-        appointmentTime.isBefore(s.endTime));
+    final dayOfWeek =
+        doctor_models.DayOfWeek.values[appointmentDate.weekday - 1];
+    final hasSchedule = doctor.schedule.any(
+      (s) =>
+          s.dayOfWeek == dayOfWeek &&
+          s.isActive &&
+          !appointmentTime.isBefore(s.startTime) &&
+          appointmentTime.isBefore(s.endTime),
+    );
 
     if (!hasSchedule) {
       return AppointmentValidationResult.error(
@@ -173,10 +201,11 @@ class AppointmentService {
   /// Marks an appointment as completed and advances patient stage
   Future<void> completeAppointment(int appointmentId) async {
     final appointments = await _dbService.getAllAppointments();
-    final appointment = appointments.where((a) => a.id == appointmentId).isNotEmpty 
-        ? appointments.where((a) => a.id == appointmentId).first 
+    final appointment =
+        appointments.where((a) => a.id == appointmentId).isNotEmpty
+        ? appointments.where((a) => a.id == appointmentId).first
         : null;
-    
+
     if (appointment == null) return;
 
     // Update appointment status
@@ -201,10 +230,11 @@ class AppointmentService {
   /// Marks an appointment as no-show and updates patient missed count
   Future<void> markAppointmentAsNoShow(int appointmentId) async {
     final appointments = await _dbService.getAllAppointments();
-    final appointment = appointments.where((a) => a.id == appointmentId).isNotEmpty 
-        ? appointments.where((a) => a.id == appointmentId).first 
+    final appointment =
+        appointments.where((a) => a.id == appointmentId).isNotEmpty
+        ? appointments.where((a) => a.id == appointmentId).first
         : null;
-    
+
     if (appointment == null) return;
 
     // Update appointment status
@@ -221,7 +251,9 @@ class AppointmentService {
       final updatedPatient = patient.copyWith(
         missedAppointments: newMissedCount,
         // Reset to first stage and deactivate if missed 2 appointments
-        currentStage: newMissedCount >= 2 ? AppointmentStage.first : patient.currentStage,
+        currentStage: newMissedCount >= 2
+            ? AppointmentStage.first
+            : patient.currentStage,
         isActive: newMissedCount < 2,
         updatedAt: DateTime.now(),
       );
@@ -240,10 +272,11 @@ class AppointmentService {
   /// Cancels an appointment
   Future<void> cancelAppointment(int appointmentId, String reason) async {
     final appointments = await _dbService.getAllAppointments();
-    final appointment = appointments.where((a) => a.id == appointmentId).isNotEmpty 
-        ? appointments.where((a) => a.id == appointmentId).first 
+    final appointment =
+        appointments.where((a) => a.id == appointmentId).isNotEmpty
+        ? appointments.where((a) => a.id == appointmentId).first
         : null;
-    
+
     if (appointment == null) return;
 
     final updatedAppointment = appointment.copyWith(
@@ -256,11 +289,16 @@ class AppointmentService {
   }
 
   /// Cancels all future appointments for a patient
-  Future<void> _cancelAllFutureAppointments(int patientId, String reason) async {
-    final patientAppointments = await _dbService.getAppointmentsByPatient(patientId);
+  Future<void> _cancelAllFutureAppointments(
+    int patientId,
+    String reason,
+  ) async {
+    final patientAppointments = await _dbService.getAppointmentsByPatient(
+      patientId,
+    );
 
     for (final appointment in patientAppointments) {
-      if (appointment.status == AppointmentStatus.scheduled && 
+      if (appointment.status == AppointmentStatus.scheduled &&
           appointment.fullDateTime.isAfter(DateTime.now())) {
         await cancelAppointment(appointment.id!, reason);
       }
@@ -272,7 +310,7 @@ class AppointmentService {
     final appointments = await _dbService.getAllAppointments();
 
     for (final appointment in appointments) {
-      if (appointment.status == AppointmentStatus.scheduled && 
+      if (appointment.status == AppointmentStatus.scheduled &&
           appointment.isPastDue) {
         await markAppointmentAsNoShow(appointment.id!);
       }
@@ -304,10 +342,10 @@ class AppointmentValidationResult {
 
   AppointmentValidationResult._(this.isValid, this.errorMessage);
 
-  factory AppointmentValidationResult.success() => 
+  factory AppointmentValidationResult.success() =>
       AppointmentValidationResult._(true, null);
 
-  factory AppointmentValidationResult.error(String message) => 
+  factory AppointmentValidationResult.error(String message) =>
       AppointmentValidationResult._(false, message);
 }
 
@@ -316,11 +354,15 @@ class ScheduleAppointmentResult {
   final int? appointmentId;
   final String? errorMessage;
 
-  ScheduleAppointmentResult._(this.isSuccess, this.appointmentId, this.errorMessage);
+  ScheduleAppointmentResult._(
+    this.isSuccess,
+    this.appointmentId,
+    this.errorMessage,
+  );
 
-  factory ScheduleAppointmentResult.success(int appointmentId) => 
+  factory ScheduleAppointmentResult.success(int appointmentId) =>
       ScheduleAppointmentResult._(true, appointmentId, null);
 
-  factory ScheduleAppointmentResult.error(String message) => 
+  factory ScheduleAppointmentResult.error(String message) =>
       ScheduleAppointmentResult._(false, null, message);
 }
