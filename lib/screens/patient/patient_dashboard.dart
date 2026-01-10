@@ -1,7 +1,7 @@
+import 'package:agencitas/services/mysql_service.dart';
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../models/patient.dart';
-import '../../services/database_service.dart';
 import 'patient_appointments.dart';
 import 'patient_schedule.dart';
 import 'patient_history.dart';
@@ -311,7 +311,7 @@ class _PatientDashboardState extends State<PatientDashboard> {
   Future<void> _editProfile() async {
     // Buscar el paciente completo en la base de datos
     try {
-      final dbService = DatabaseService();
+      final dbService = MySQLDatabaseService();
       final patients = await dbService.getAllPatients();
       
       // Buscar el paciente que coincida con el email del usuario

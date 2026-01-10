@@ -1,3 +1,5 @@
+// lib/screens/login_screen.dart
+import 'package:agencitas/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import '../models/user.dart';
@@ -14,50 +16,13 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+// Estado del LoginScreen
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-
-  // Credenciales por defecto (en una app real esto estaría en una base de datos)
-  final Map<String, String> _validCredentials = {
-    'admin': 'admin123',
-    'doctor': 'doctor123',
-    'enfermera': 'enfermera123',
-    'recepcionista': 'recepcion123',
-    'director': 'director123', // Agregado para el director
-    'paciente': 'paciente123', // Agregado para el paciente
-  };
-
-  // Usuarios de prueba para el sistema del director
-  final List<User> _demoUsers = [
-    User(
-      username: 'director',
-      displayName: 'Juan Carlos Rodríguez',
-      email: 'director@agencitas.com',
-      role: UserRole.director,
-      isActive: true,
-      createdAt: DateTime.now(),
-    ),
-    User(
-      username: 'doctor',
-      displayName: 'María Elena García',
-      email: 'doctor@agencitas.com',
-      role: UserRole.doctor,
-      isActive: true,
-      createdAt: DateTime.now(),
-    ),
-    User(
-      username: 'paciente',
-      displayName: 'Carlos Antonio Pérez',
-      email: 'paciente@agencitas.com',
-      role: UserRole.patient,
-      isActive: true,
-      createdAt: DateTime.now(),
-    ),
-  ];
 
   @override
   void dispose() {
@@ -67,144 +32,76 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (_validCredentials.containsKey(username) &&
-        _validCredentials[username] == password) {
-      // Verificar si es el director para redirigir al panel especial
-      if (username == 'director') {
-        // Buscar el usuario director
-        final directorUser = _demoUsers.firstWhere(
-          (user) => user.username == 'director',
-          orElse: () => User(
-            username: 'director',
-            displayName: 'Director del Centro',
-            email: 'director@agencitas.com',
-            role: UserRole.director,
-            isActive: true,
-            createdAt: DateTime.now(),
-          ),
-        );
+    try {
+      final user = await AuthService.login(username, password);
 
-        // Establecer sesión
-        SessionManager.login(directorUser);
+      if (user != null) {
+        // Asume que tienes una clase SessionManager que maneja el estado global
+        SessionManager.login(user);
 
-        // Navegar al panel del director
         if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => DirectorDashboard(director: directorUser),
-            ),
-          );
-        }
-      } else if (username == 'doctor') {
-        // Buscar el usuario doctor
-        final doctorUser = _demoUsers.firstWhere(
-          (user) => user.username == 'doctor',
-          orElse: () => User(
-            username: 'doctor',
-            displayName: 'María Elena García',
-            email: 'doctor@agencitas.com',
-            role: UserRole.doctor,
-            isActive: true,
-            createdAt: DateTime.now(),
-          ),
-        );
-
-        // Establecer sesión
-        SessionManager.login(doctorUser);
-
-        // Navegar al panel del doctor
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => DoctorDashboard(doctor: doctorUser),
-            ),
-          );
-        }
-      } else if (username == 'paciente') {
-        // Buscar el usuario paciente
-        final patientUser = _demoUsers.firstWhere(
-          (user) => user.username == 'paciente',
-          orElse: () => User(
-            username: 'paciente',
-            displayName: 'Carlos Antonio Pérez',
-            email: 'paciente@agencitas.com',
-            role: UserRole.patient,
-            isActive: true,
-            createdAt: DateTime.now(),
-          ),
-        );
-
-        // Establecer sesión
-        SessionManager.login(patientUser);
-
-        // Navegar al panel del paciente
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => PatientDashboard(patient: patientUser),
-            ),
-          );
-        }
-      } else if (username == 'recepcionista') {
-        // Buscar el usuario recepcionista
-        final receptionistUser = User(
-          username: 'recepcionista',
-          displayName: 'Laura Fernández',
-          email: 'recepcion@agencitas.com',
-          role: UserRole.receptionist,
-          isActive: true,
-          createdAt: DateTime.now(),
-        );
-
-        // Establecer sesión
-        SessionManager.login(receptionistUser);
-
-        // Navegar al panel de recepcionista
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) =>
-                  ReceptionistDashboard(receptionist: receptionistUser),
-            ),
-          );
+          switch (user.role) {
+            case UserRole.director:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => DirectorDashboard(director: user)),
+              );
+              break;
+            case UserRole.doctor:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => DoctorDashboard(doctor: user)),
+              );
+              break;
+            case UserRole.patient:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => PatientDashboard(patient: user)),
+              );
+              break;
+            case UserRole.receptionist:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => ReceptionistDashboard(receptionist: user)),
+              );
+              break;
+            default:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              );
+          }
         }
       } else {
-        // Login exitoso para otros usuarios - ir al HomeScreen original
         if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Usuario o contraseña incorrectos'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
           );
         }
       }
-    } else {
-      // Login fallido
-      setState(() {
-        _isLoading = false;
-      });
-
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Usuario o contraseña incorrectos'),
+          SnackBar(
+            content: Text('Error al iniciar sesión: $e'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
-
+  
+  // Muestra un cuadro de diálogo con las credenciales de prueba
   void _showCredentialsInfo() {
     showDialog(
       context: context,
@@ -214,16 +111,13 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Usuarios disponibles:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text('Usuarios disponibles:', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
             Text('• admin / admin123'),
             Text('• director / director123'),
             Text('• doctor / doctor123'),
             Text('• paciente / paciente123'),
-            Text('• enfermera / enfermera123'),
+            ///Text('• enfermera / enfermera123'),
             Text('• recepcionista / recepcion123'),
           ],
         ),
@@ -237,6 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+ // clase bluid para construir la interfaz de usuario
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -261,12 +156,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 60),
-
-                  // Header con Logo y Título vertical
+                  // Header con Logo y Título
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Logo MSP
                       Container(
                         width: 60,
                         height: 60,
@@ -280,94 +173,44 @@ class _LoginScreenState extends State<LoginScreen> {
                               offset: const Offset(0, 5),
                             ),
                           ],
-                          border: Border.all(
-                            color: Colors.grey.withOpacity(0.2),
-                            width: 1,
-                          ),
+                          border: Border.all(color: Colors.grey.withOpacity(0.2), width: 1),
                         ),
                         child: Center(
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Letra "m"
                               Container(
                                 width: 11,
                                 height: 20,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFD700),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    'm',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                                decoration: BoxDecoration(color: const Color(0xFFFFD700), borderRadius: BorderRadius.circular(3)),
+                                child: const Center(child: Text('m', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
                               ),
                               const SizedBox(width: 2),
-                              // Letra "s"
                               Container(
                                 width: 11,
                                 height: 20,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0066CC),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    's',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                                decoration: BoxDecoration(color: const Color(0xFF0066CC), borderRadius: BorderRadius.circular(3)),
+                                child: const Center(child: Text('s', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
                               ),
                               const SizedBox(width: 2),
-                              // Letra "p"
                               Container(
                                 width: 11,
                                 height: 20,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE31E24),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    'p',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                                decoration: BoxDecoration(color: const Color(0xFFE31E24), borderRadius: BorderRadius.circular(3)),
+                                child: const Center(child: Text('p', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
                               ),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      // Título
                       const Text(
                         'CERICITAS',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                          letterSpacing: 1.2,
-                        ),
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black, letterSpacing: 1.2),
                       ),
                     ],
                   ),
                   const SizedBox(height: 50),
-
-                  // Campo Usuario
                   TextFormField(
                     controller: _usernameController,
                     style: const TextStyle(fontSize: 15),
@@ -375,13 +218,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Usuario',
                       hintText: 'Ingresa tu usuario',
                       hintStyle: TextStyle(color: Colors.grey[400]),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -391,8 +229,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 20),
-
-                  // Campo Contraseña
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
@@ -400,28 +236,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
                       hintText: 'Ingresa tu contraseña',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
                       suffixIcon: IconButton(
-                        icon: Icon(
-                          _isPasswordVisible
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey[600],
-                          size: 22,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
+                        icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility, color: Colors.grey[600], size: 22),
+                        onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -434,37 +254,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 8),
-
-                  // Link ¿Olvidaste tu contraseña?
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordScreen(),
-                          ),
-                        );
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()));
                       },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text(
-                        '¿Olvidaste tu contraseña?',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF0066CC),
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                      child: const Text('¿Olvidaste tu contraseña?', style: TextStyle(fontSize: 13, color: Color(0xFF0066CC), decoration: TextDecoration.underline)),
                     ),
                   ),
                   const SizedBox(height: 12),
-
-                  // Botón Iniciar Sesión
                   SizedBox(
                     height: 50,
                     child: ElevatedButton(
@@ -473,9 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: _isLoading
                           ? const SizedBox(
@@ -483,39 +281,21 @@ class _LoginScreenState extends State<LoginScreen> {
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Text(
-                              'Iniciar Sesión',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                          : const Text('Iniciar Sesión', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Botón de ayuda
                   TextButton.icon(
                     onPressed: _showCredentialsInfo,
                     icon: const Icon(Icons.help_outline),
                     label: const Text('Ver credenciales de prueba'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey[600],
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
                   ),
                   const SizedBox(height: 40),
-
-                  // Texto de versión
-                  Text(
-                    'v1.0.0 - Ministerio de Salud Pública',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                    textAlign: TextAlign.center,
-                  ),
+                  Text('v1.0.0 - Ministerio de Salud Pública', style: TextStyle(fontSize: 12, color: Colors.grey[500]), textAlign: TextAlign.center),
                 ],
               ),
             ),

@@ -1,3 +1,4 @@
+/*
 import 'package:flutter/material.dart';
 import 'patient.dart';
 import 'doctor.dart' as doctor_models;
@@ -58,6 +59,8 @@ class Appointment {
   final DateTime? updatedAt;
   final DateTime? cancelledAt;
   final String? cancellationReason;
+
+  
 
   // Relational data (not stored in DB directly)
   final Patient? patient;
@@ -125,6 +128,9 @@ class Appointment {
 
   factory Appointment.fromMap(Map<String, dynamic> map) {
     final timeParts = map['appointmentTime'].split(':');
+
+
+  
     
     return Appointment(
       id: map['id'],
@@ -153,6 +159,55 @@ class Appointment {
       cancellationReason: map['cancellationReason'],
     );
   }
+
+  // Crear una instancia de Appointment a partir de JSON recibido de la API
+  factory Appointment.fromJson(Map<String, dynamic> json) {
+  final timeParts = json['appointmentTime'].split(':');
+
+  return Appointment(
+    id: json['id'],
+    patientId: json['patientId'],
+    doctorId: json['doctorId'],
+
+    // API devuelve "YYYY-MM-DD"
+    appointmentDate: DateTime.parse(json['appointmentDate']),
+
+    // API devuelve "HH:mm"
+    appointmentTime: doctor_models.TimeOfDay(
+      hour: int.parse(timeParts[0]),
+      minute: int.parse(timeParts[1]),
+    ),
+
+    status: AppointmentStatus.values[
+      json['status'] ?? AppointmentStatus.scheduled.index
+    ],
+
+    stage: AppointmentStage.values[
+      json['stage']
+    ],
+
+    therapyStatus: json['therapyStatus'] != null
+        ? TherapyStatus.values[json['therapyStatus']]
+        : TherapyStatus.notStarted,
+
+    notes: json['notes'],
+    referralCode: json['referralCode'],
+    isFromProvince: json['isFromProvince'] == 1 || json['isFromProvince'] == true,
+
+    // Fechas del backend (DATETIME)
+    createdAt: DateTime.parse(json['createdAt']),
+    updatedAt: json['updatedAt'] != null
+        ? DateTime.parse(json['updatedAt'])
+        : null,
+
+    cancelledAt: json['cancelledAt'] != null
+        ? DateTime.parse(json['cancelledAt'])
+        : null,
+
+    cancellationReason: json['cancellationReason'],
+  );
+}
+
 
   Appointment copyWith({
     int? id,
@@ -288,6 +343,339 @@ class ReferralCode {
           : null,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt']),
       updatedAt: map['updatedAt'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(map['updatedAt'])
+          : null,
+    );
+  }
+}
+
+*/
+
+import 'package:flutter/material.dart';
+import 'patient.dart';
+import 'doctor.dart' as doctor_models;
+
+// Estado de la terapia para el semáforo
+enum TherapyStatus {
+  notStarted,
+  inProgress,
+  completed;
+
+  String get displayName {
+    switch (this) {
+      case TherapyStatus.notStarted:
+        return 'No iniciada';
+      case TherapyStatus.inProgress:
+        return 'En progreso';
+      case TherapyStatus.completed:
+        return 'Finalizada';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case TherapyStatus.notStarted:
+        return const Color(0xFFF44336); // Rojo
+      case TherapyStatus.inProgress:
+        return const Color(0xFFFF9800); // Amarillo/Naranja
+      case TherapyStatus.completed:
+        return const Color(0xFF4CAF50); // Verde
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case TherapyStatus.notStarted:
+        return Icons.play_circle_outline;
+      case TherapyStatus.inProgress:
+        return Icons.pending;
+      case TherapyStatus.completed:
+        return Icons.check_circle;
+    }
+  }
+}
+
+class Appointment {
+  final int? id;
+  final int patientId;
+  final int doctorId;
+  final DateTime appointmentDate;
+  final doctor_models.TimeOfDay appointmentTime;
+  final AppointmentStatus status;
+  final AppointmentStage stage;
+  final TherapyStatus therapyStatus;
+  final String? notes;
+  final String? referralCode;
+  final bool isFromProvince;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+  final DateTime? cancelledAt;
+  final String? cancellationReason;
+
+  // NUEVOS CAMPOS CORREGIDOS PARA MOSTRAR NOMBRES
+  final String patientName;
+  final String patientLastName;
+  final String doctorName;
+  final String doctorLastName;
+
+  // Relational data (no almacenado directamente en DB)
+  final Patient? patient;
+  final doctor_models.Doctor? doctor;
+
+  Appointment({
+    this.id,
+    required this.patientId,
+    required this.doctorId,
+    required this.appointmentDate,
+    required this.appointmentTime,
+    this.status = AppointmentStatus.scheduled,
+    required this.stage,
+    this.therapyStatus = TherapyStatus.notStarted,
+    this.notes,
+    this.referralCode,
+    this.isFromProvince = false,
+    required this.createdAt,
+    this.updatedAt,
+    this.cancelledAt,
+    this.cancellationReason,
+    this.patient,
+    this.doctor,
+    // Inicializar nuevos campos
+    this.patientName = '',
+    this.patientLastName = '',
+    this.doctorName = '',
+    this.doctorLastName = '',
+  });
+
+  // GETTERS NUEVOS PARA UI
+  String get patientFullName => '$patientName $patientLastName';
+  String get doctorFullName => '$doctorName $doctorLastName';
+
+  DateTime get fullDateTime {
+    return DateTime(
+      appointmentDate.year,
+      appointmentDate.month,
+      appointmentDate.day,
+      appointmentTime.hour,
+      appointmentTime.minute,
+    );
+  }
+
+  bool get isPastDue {
+    return fullDateTime.isBefore(DateTime.now()) &&
+        status == AppointmentStatus.scheduled;
+  }
+
+  bool get canBeCancelled {
+    return status == AppointmentStatus.scheduled &&
+        fullDateTime.isAfter(DateTime.now());
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'patientId': patientId,
+      'doctorId': doctorId,
+      'appointmentDate': appointmentDate.millisecondsSinceEpoch,
+      'appointmentTime': '${appointmentTime.hour}:${appointmentTime.minute}',
+      'status': status.index,
+      'stage': stage.index,
+      'therapyStatus': therapyStatus.index,
+      'notes': notes,
+      'referralCode': referralCode,
+      'isFromProvince': isFromProvince ? 1 : 0,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+      'updatedAt': updatedAt?.millisecondsSinceEpoch,
+      'cancelledAt': cancelledAt?.millisecondsSinceEpoch,
+      'cancellationReason': cancellationReason,
+      'patientName': patientName,         // CORRECCIÓN
+      'patientLastName': patientLastName, // CORRECCIÓN
+      'doctorName': doctorName,           // CORRECCIÓN
+      'doctorLastName': doctorLastName,   // CORRECCIÓN
+    };
+  }
+
+  factory Appointment.fromJson(Map<String, dynamic> json) {
+    final timeParts = json['appointmentTime'].split(':');
+
+    return Appointment(
+      id: json['id'],
+      patientId: json['patientId'],
+      doctorId: json['doctorId'],
+      appointmentDate: DateTime.parse(json['appointmentDate']),
+      appointmentTime: doctor_models.TimeOfDay(
+        hour: int.parse(timeParts[0]),
+        minute: int.parse(timeParts[1]),
+      ),
+      status: AppointmentStatus.values[
+          json['status'] ?? AppointmentStatus.scheduled.index],
+      stage: AppointmentStage.values[json['stage']],
+      therapyStatus: json['therapyStatus'] != null
+          ? TherapyStatus.values[json['therapyStatus']]
+          : TherapyStatus.notStarted,
+      notes: json['notes'],
+      referralCode: json['referralCode'],
+      isFromProvince:
+          json['isFromProvince'] == 1 || json['isFromProvince'] == true,
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      cancelledAt: json['cancelledAt'] != null
+          ? DateTime.parse(json['cancelledAt'])
+          : null,
+      cancellationReason: json['cancellationReason'],
+      // ASIGNACIÓN DE NOMBRES DESDE API
+      patientName: json['patientName'] ?? '',
+      patientLastName: json['patientLastName'] ?? '',
+      doctorName: json['doctorName'] ?? '',
+      doctorLastName: json['doctorLastName'] ?? '',
+    );
+  }
+
+  Appointment copyWith({
+    int? id,
+    int? patientId,
+    int? doctorId,
+    DateTime? appointmentDate,
+    doctor_models.TimeOfDay? appointmentTime,
+    AppointmentStatus? status,
+    AppointmentStage? stage,
+    String? notes,
+    String? referralCode,
+    bool? isFromProvince,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? cancelledAt,
+    String? cancellationReason,
+    Patient? patient,
+    doctor_models.Doctor? doctor,
+    String? patientName,
+    String? patientLastName,
+    String? doctorName,
+    String? doctorLastName,
+  }) {
+    return Appointment(
+      id: id ?? this.id,
+      patientId: patientId ?? this.patientId,
+      doctorId: doctorId ?? this.doctorId,
+      appointmentDate: appointmentDate ?? this.appointmentDate,
+      appointmentTime: appointmentTime ?? this.appointmentTime,
+      status: status ?? this.status,
+      stage: stage ?? this.stage,
+      notes: notes ?? this.notes,
+      referralCode: referralCode ?? this.referralCode,
+      isFromProvince: isFromProvince ?? this.isFromProvince,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      cancellationReason: cancellationReason ?? this.cancellationReason,
+      patient: patient ?? this.patient,
+      doctor: doctor ?? this.doctor,
+      patientName: patientName ?? this.patientName,
+      patientLastName: patientLastName ?? this.patientLastName,
+      doctorName: doctorName ?? this.doctorName,
+      doctorLastName: doctorLastName ?? this.doctorLastName,
+    );
+  }
+}
+
+enum AppointmentStatus {
+  scheduled, //0 Cita programada
+  completed, //1 Cita completada
+  cancelled, //2 Cita cancelada
+  noShow, //3 No se presentó
+  rescheduled, //4 Cita reprogramada
+}
+
+extension AppointmentStatusExtension on AppointmentStatus {
+  String get displayName {
+    switch (this) {
+      case AppointmentStatus.scheduled:
+        return 'Programada';
+      case AppointmentStatus.completed:
+        return 'Completada';
+      case AppointmentStatus.cancelled:
+        return 'Cancelada';
+      case AppointmentStatus.noShow:
+        return 'No se presentó';
+      case AppointmentStatus.rescheduled:
+        return 'Reprogramada';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case AppointmentStatus.scheduled:
+        return const Color(0xFF2196F3); // Blue
+      case AppointmentStatus.completed:
+        return const Color(0xFF4CAF50); // Green
+      case AppointmentStatus.cancelled:
+        return const Color(0xFF9E9E9E); // Grey
+      case AppointmentStatus.noShow:
+        return const Color(0xFFF44336); // Red
+      case AppointmentStatus.rescheduled:
+        return const Color(0xFFFF9800); // Orange
+    }
+  }
+}
+
+// Tu clase ReferralCode queda igual
+class ReferralCode {
+  final int? id;
+  final String code;
+  final String description;
+  final bool isForProvince;
+  final bool isActive;
+  final DateTime? expiryDate;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+
+  ReferralCode({
+    this.id,
+    required this.code,
+    required this.description,
+    this.isForProvince = false,
+    this.isActive = true,
+    this.expiryDate,
+    required this.createdAt,
+    this.updatedAt,
+  });
+
+  bool get isExpired {
+    if (expiryDate == null) return false;
+    return DateTime.now().isAfter(expiryDate!);
+  }
+
+  bool get isValid {
+    return isActive && !isExpired;
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'code': code,
+      'description': description,
+      'isForProvince': isForProvince ? 1 : 0,
+      'isActive': isActive ? 1 : 0,
+      'expiryDate': expiryDate?.millisecondsSinceEpoch,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+      'updatedAt': updatedAt?.millisecondsSinceEpoch,
+    };
+  }
+
+  factory ReferralCode.fromMap(Map<String, dynamic> map) {
+    return ReferralCode(
+      id: map['id'],
+      code: map['code'],
+      description: map['description'],
+      isForProvince: map['isForProvince'] == 1,
+      isActive: map['isActive'] == 1,
+      expiryDate: map['expiryDate'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['expiryDate'])
+          : null,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt']),
+      updatedAt: map['updatedAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['updatedAt'])
           : null,
     );

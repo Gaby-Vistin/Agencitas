@@ -1,3 +1,7 @@
+
+// intyerfaz de los horarios de la citas programadas del doctor
+
+
 import 'package:flutter/material.dart';
 
 class DoctorSchedule extends StatefulWidget {
@@ -48,7 +52,9 @@ class _DoctorScheduleState extends State<DoctorSchedule> {
       );
     }
   }
+ 
 
+  //HORARIOS PREDEFINIDOS 
   Map<String, List<TimeSlot>> _generateSampleSchedule() {
     return {
       'Lunes': [

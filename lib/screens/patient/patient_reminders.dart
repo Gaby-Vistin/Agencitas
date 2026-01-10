@@ -1,9 +1,11 @@
+import 'package:agencitas/models/appointment.dart';
+import 'package:agencitas/services/mysql_service.dart';
 import 'package:flutter/material.dart';
 
 class PatientReminders extends StatefulWidget {
   final String patientId;
 
-  const PatientReminders({Key? key, required this.patientId}) : super(key: key);
+  const PatientReminders({super.key, required this.patientId});
 
   @override
   State<PatientReminders> createState() => _PatientRemindersState();
@@ -12,6 +14,7 @@ class PatientReminders extends StatefulWidget {
 class _PatientRemindersState extends State<PatientReminders> {
   List<ReminderItem> _reminders = [];
   bool _isLoading = true;
+  final MySQLDatabaseService _dbService = MySQLDatabaseService();
 
   @override
   void initState() {
@@ -25,10 +28,30 @@ class _PatientRemindersState extends State<PatientReminders> {
     });
 
     try {
-      // Simular carga de recordatorios
+      final patientIdInt = int.tryParse(widget.patientId);
+      if (patientIdInt != null) {
+        final appointments = await _dbService.getAppointmentsByPatient(patientIdInt);
+        
+        // Map upcoming scheduled appointments to reminders
+        final upcomingApps = appointments.where((a) => 
+          a.status == AppointmentStatus.scheduled && 
+          a.fullDateTime.isAfter(DateTime.now())
+        ).toList();
 
+        _reminders = upcomingApps.map((a) => ReminderItem(
+          id: a.id.toString(),
+          title: 'Cita con ${a.doctor?.fullName ?? "Doctor"}',
+          description: 'Cita programada - ${a.doctor?.specialty ?? ""}',
+          dateTime: a.fullDateTime,
+          type: ReminderType.appointment,
+          isRead: false,
+          priority: ReminderPriority.high,
+          canReschedule: true,
+          doctorInfo: DoctorInfo(a.doctor?.fullName ?? "Doctor", a.doctor?.specialty ?? ""),
+        )).toList();
+      }
+      
       setState(() {
-        _reminders = _generateReminders();
         _isLoading = false;
       });
     } catch (e) {
@@ -42,105 +65,6 @@ class _PatientRemindersState extends State<PatientReminders> {
         ),
       );
     }
-  }
-
-  List<ReminderItem> _generateReminders() {
-    final now = DateTime.now();
-    return [
-      // Citas próximas
-      ReminderItem(
-        id: '1',
-        title: 'Cita con Dr. María García',
-        description: 'Consulta de seguimiento cardiológico',
-        dateTime: now.add(const Duration(days: 2, hours: 10)),
-        type: ReminderType.appointment,
-        isRead: false,
-        priority: ReminderPriority.high,
-        canReschedule: true,
-        doctorInfo: DoctorInfo('Dr. María García', 'Cardiología'),
-      ),
-      ReminderItem(
-        id: '2',
-        title: 'Sesión de Fisioterapia',
-        description: 'Rehabilitación de rodilla - Sesión 13/15',
-        dateTime: now.add(const Duration(days: 1, hours: 14)),
-        type: ReminderType.therapy,
-        isRead: false,
-        priority: ReminderPriority.medium,
-        canReschedule: true,
-        therapyInfo: TherapyInfo('Fisioterapia de Rodilla', 13, 15),
-      ),
-
-      // Medicamentos
-      ReminderItem(
-        id: '3',
-        title: 'Tomar Losartán',
-        description: '50mg - Con el desayuno',
-        dateTime: now.add(const Duration(hours: 8)),
-        type: ReminderType.medication,
-        isRead: true,
-        priority: ReminderPriority.high,
-        isRecurring: true,
-        medicationInfo: MedicationInfo('Losartán', '50mg', 'Con el desayuno'),
-      ),
-      ReminderItem(
-        id: '4',
-        title: 'Aplicar hielo en rodilla',
-        description: 'Terapia de frío durante 15 minutos',
-        dateTime: now.add(const Duration(hours: 4)),
-        type: ReminderType.treatment,
-        isRead: false,
-        priority: ReminderPriority.medium,
-        isRecurring: true,
-      ),
-
-      // Exámenes
-      ReminderItem(
-        id: '5',
-        title: 'Análisis de sangre',
-        description: 'Laboratorio Central - En ayunas',
-        dateTime: now.add(const Duration(days: 5, hours: 8)),
-        type: ReminderType.test,
-        isRead: false,
-        priority: ReminderPriority.medium,
-        testInfo: TestInfo(
-          'Análisis de sangre completo',
-          'Laboratorio Central',
-          true,
-        ),
-      ),
-
-      // Ejercicios
-      ReminderItem(
-        id: '6',
-        title: 'Ejercicios cardiovasculares',
-        description: 'Caminata de 30 minutos',
-        dateTime: now.add(const Duration(hours: 2)),
-        type: ReminderType.exercise,
-        isRead: true,
-        priority: ReminderPriority.low,
-        isRecurring: true,
-        exerciseInfo: ExerciseInfo(
-          'Caminata',
-          '30 minutos',
-          'Intensidad moderada',
-        ),
-      ),
-
-      // Recordatorios pasados
-      ReminderItem(
-        id: '7',
-        title: 'Cita perdida',
-        description: 'Consulta con Dr. Carlos Rodríguez',
-        dateTime: now.subtract(const Duration(days: 1)),
-        type: ReminderType.appointment,
-        isRead: false,
-        priority: ReminderPriority.high,
-        isMissed: true,
-        canReschedule: true,
-        doctorInfo: DoctorInfo('Dr. Carlos Rodríguez', 'Neurología'),
-      ),
-    ];
   }
 
   @override
@@ -789,7 +713,7 @@ class _PatientRemindersState extends State<PatientReminders> {
   }
 
   int _getTodayRemindersCount() {
-    final now = DateTime.now();
+    // final now = DateTime.now();
     return _reminders.where((r) => _isToday(r.dateTime)).length;
   }
 

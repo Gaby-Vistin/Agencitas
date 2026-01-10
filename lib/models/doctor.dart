@@ -63,6 +63,38 @@ class Doctor {
     );
   }
 
+
+  factory Doctor.fromJson(Map<String, dynamic> json) {
+  return Doctor(
+    id: json['id'],
+    name: json['name'],
+    lastName: json['lastName'],
+    specialty: json['specialty'],
+    license: json['license'],
+    email: json['email'],
+    phone: json['phone'],
+
+    // Si tu API no maneja horarios aún
+    schedule: const [],
+
+    // Si tu API no envía duración
+    appointmentDuration: json['appointmentDuration'] ?? 30,
+
+    // MySQL devuelve 1 / 0
+    isActive: json['isActive'] == 1 || json['isActive'] == true,
+
+    // MySQL devuelve string → DateTime.parse
+    createdAt: json['createdAt'] != null
+        ? DateTime.parse(json['createdAt'])
+        : DateTime.now(),
+
+    updatedAt: json['updatedAt'] != null
+        ? DateTime.parse(json['updatedAt'])
+        : null,
+  );
+}
+
+
   Doctor copyWith({
     int? id,
     String? name,

@@ -636,7 +636,7 @@ class _DirectorPatientsState extends State<DirectorPatients> {
                 _buildInfoItem('Citas Perdidas', patient.missedAppointments.toString()),
                 _buildInfoItem('Estado', patient.isActive ? 'Activo' : 'Inactivo'),
                 _buildInfoItem('Fecha de Registro', 
-                  '${patient.createdAt.day}/${patient.createdAt.month}/${patient.createdAt.year}'),
+                  '${patient.createdAt?.day}/${patient.createdAt?.month}/${patient.createdAt?.year}'),
               ],
             ),
           ),

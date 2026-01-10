@@ -12,7 +12,7 @@ class Patient {
   final int missedAppointments;
   final AppointmentStage currentStage;
   final bool isActive;
-  final DateTime createdAt;
+  final DateTime? createdAt;
   final DateTime? updatedAt;
 
   Patient({
@@ -29,62 +29,97 @@ class Patient {
     this.missedAppointments = 0,
     this.currentStage = AppointmentStage.first,
     this.isActive = true,
-    required this.createdAt,
+    this.createdAt,
     this.updatedAt,
   });
 
-  String get fullName => '$name $lastName';
-
-  bool get canScheduleAppointment {
-    return isActive && missedAppointments < 2;
-  }
-
-  bool get needsReferralCode {
-    return isFromProvince || referralCode != null;
-  }
-
-  Map<String, dynamic> toMap() {
+  // ----------------------------------
+  // CONVERTIR A JSON (para API REST)
+  // ----------------------------------
+  Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'name': name,
-      'lastName': lastName,
-      'identification': identification,
-      'email': email,
-      'phone': phone,
-      'birthDate': birthDate.millisecondsSinceEpoch,
-      'address': address,
-      'referralCode': referralCode,
-      'isFromProvince': isFromProvince ? 1 : 0,
-      'missedAppointments': missedAppointments,
-      'currentStage': currentStage.index,
-      'isActive': isActive ? 1 : 0,
-      'createdAt': createdAt.millisecondsSinceEpoch,
-      'updatedAt': updatedAt?.millisecondsSinceEpoch,
+      "id": id,
+      "name": name,
+      "lastName": lastName,
+      "identification": identification,
+      "email": email,
+      "phone": phone,
+      "birthDate": birthDate.toIso8601String(),
+      "address": address,
+      "referralCode": referralCode,
+      "isFromProvince": isFromProvince,
+      "missedAppointments": missedAppointments,
+      "currentStage": currentStage.index,
+      "isActive": isActive,
+      "createdAt": createdAt?.toIso8601String(),
+      "updatedAt": updatedAt?.toIso8601String(),
     };
   }
 
-  factory Patient.fromMap(Map<String, dynamic> map) {
+  // ----------------------------------
+  // CONVERTIR DESDE JSON (API REST)
+  // ----------------------------------
+  factory Patient.fromJson(Map<String, dynamic> map) {
     return Patient(
-      id: map['id'],
-      name: map['name'],
-      lastName: map['lastName'],
-      identification: map['identification'],
-      email: map['email'],
-      phone: map['phone'],
-      birthDate: DateTime.fromMillisecondsSinceEpoch(map['birthDate']),
-      address: map['address'],
-      referralCode: map['referralCode'],
-      isFromProvince: map['isFromProvince'] == 1,
-      missedAppointments: map['missedAppointments'] ?? 0,
-      currentStage: AppointmentStage.values[map['currentStage'] ?? 0],
-      isActive: map['isActive'] == 1,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt']),
-      updatedAt: map['updatedAt'] != null 
-          ? DateTime.fromMillisecondsSinceEpoch(map['updatedAt'])
-          : null,
+      id: map["id"],
+      name: map["name"],
+      lastName: map["lastName"],
+      identification: map["identification"],
+      email: map["email"],
+      phone: map["phone"],
+      birthDate: DateTime.parse(map["birthDate"]),
+      address: map["address"],
+      referralCode: map["referralCode"],
+      isFromProvince: map["isFromProvince"] is int
+          ? map["isFromProvince"] == 1
+          : map["isFromProvince"] ?? false,
+      missedAppointments: map["missedAppointments"] ?? 0,
+      currentStage: AppointmentStage.values[map["currentStage"] ?? 0],
+      isActive: map["isActive"] is int
+          ? map["isActive"] == 1
+          : map["isActive"] ?? true,
+      createdAt:
+          map["createdAt"] != null ? DateTime.parse(map["createdAt"]) : null,
+      updatedAt:
+          map["updatedAt"] != null ? DateTime.parse(map["updatedAt"]) : null,
     );
   }
 
+
+  // ----------------------------------
+  // JSON SOLO PARA COMPARAR Y PATCH
+  // ----------------------------------
+  Map<String, dynamic> toPatchJson() {
+    return {
+      "name": name,
+      "lastName": lastName,
+      "identification": identification,
+      "email": email,
+      "phone": phone,
+      "birthDate": birthDate.toIso8601String().split('T').first,
+      "address": address,
+      "referralCode": referralCode,
+      "isFromProvince": isFromProvince ? 1 : 0,
+      "missedAppointments": missedAppointments,
+      "currentStage": currentStage.index,
+      "isActive": isActive ? 1 : 0,
+    };
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+  // ----------------------------------
+  // COPYWITH
+  // ----------------------------------
   Patient copyWith({
     int? id,
     String? name,
@@ -120,8 +155,20 @@ class Patient {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  // ----------------------------------
+  // GETTERS
+  // ----------------------------------
+  String get fullName => "$name $lastName";
+
+  bool get canScheduleAppointment => isActive && missedAppointments < 2;
+
+  bool get needsReferralCode => isFromProvince || referralCode != null;
 }
 
+// ----------------------------------
+// ENUM DE ETAPAS DE CITA
+// ----------------------------------
 enum AppointmentStage {
   first,
   second,
@@ -132,11 +179,11 @@ extension AppointmentStageExtension on AppointmentStage {
   String get displayName {
     switch (this) {
       case AppointmentStage.first:
-        return 'Primera Cita';
+        return "Primera Cita";
       case AppointmentStage.second:
-        return 'Segunda Cita';
+        return "Segunda Cita";
       case AppointmentStage.third:
-        return 'Tercera Cita';
+        return "Tercera Cita";
     }
   }
 
@@ -150,4 +197,7 @@ extension AppointmentStageExtension on AppointmentStage {
         return 3;
     }
   }
+
+
 }
+

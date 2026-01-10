@@ -1,57 +1,20 @@
+/*
+// -------------------------------------
+// Pantalla de Agendamiento de Citas
+// -------------------------------------
+
+import 'package:agencitas/models/appointment.dart';
+import 'package:agencitas/services/api_registro_paciente.dart';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/patient.dart';
 import '../models/doctor.dart' as doctor_models;
-import '../services/database_service.dart';
 import '../services/appointment_service.dart';
 import '../widgets/logout_button.dart';
 import 'doctor_list_screen.dart';
 
-// Clase para representar una provincia
-class Province {
-  final String name;
-  final String capital;
-  final String code;
 
-  const Province({
-    required this.name,
-    required this.capital,
-    required this.code,
-  });
-
-  String get displayName => '$name: $capital';
-
-  @override
-  String toString() => displayName;
-}
-
-// Lista de provincias del Ecuador con códigos oficiales
-const List<Province> ecuadorianProvinces = [
-  Province(name: 'Azuay', capital: 'Cuenca', code: '01'),
-  Province(name: 'Bolívar', capital: 'Guaranda', code: '02'),
-  Province(name: 'Cañar', capital: 'Azogues', code: '03'),
-  Province(name: 'Carchi', capital: 'Tulcán', code: '04'),
-  Province(name: 'Cotopaxi', capital: 'Latacunga', code: '05'),
-  Province(name: 'Chimborazo', capital: 'Riobamba', code: '06'),
-  Province(name: 'El Oro', capital: 'Machala', code: '07'),
-  Province(name: 'Esmeraldas', capital: 'Esmeraldas', code: '08'),
-  Province(name: 'Guayas', capital: 'Guayaquil', code: '09'),
-  Province(name: 'Imbabura', capital: 'Ibarra', code: '10'),
-  Province(name: 'Loja', capital: 'Loja', code: '11'),
-  Province(name: 'Los Ríos', capital: 'Babahoyo', code: '12'),
-  Province(name: 'Manabí', capital: 'Portoviejo', code: '13'),
-  Province(name: 'Morona Santiago', capital: 'Macas', code: '14'),
-  Province(name: 'Napo', capital: 'Tena', code: '15'),
-  Province(name: 'Pastaza', capital: 'Puyo', code: '16'),
-  Province(name: 'Pichincha', capital: 'Quito', code: '17'),
-  Province(name: 'Tungurahua', capital: 'Ambato', code: '18'),
-  Province(name: 'Zamora Chinchipe', capital: 'Zamora', code: '19'),
-  Province(name: 'Galápagos', capital: 'Puerto Baquerizo Moreno', code: '20'),
-  Province(name: 'Sucumbíos', capital: 'Nueva Loja', code: '21'),
-  Province(name: 'Orellana', capital: 'Francisco de Orellana', code: '22'),
-  Province(name: 'Santo Domingo de los Tsáchilas', capital: 'Santo Domingo', code: '24'),
-  Province(name: 'Santa Elena', capital: 'Santa Elena', code: '26'),
-];
 
 class AppointmentSchedulingScreen extends StatefulWidget {
   final Patient? patient;
@@ -67,17 +30,30 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
   final _notesController = TextEditingController();
   final _referralCodeController = TextEditingController();
   
-  final DatabaseService _dbService = DatabaseService();
-  final AppointmentService _appointmentService = AppointmentService();
+
+
+
+  //final MySQLDatabaseService _dbService = MySQLDatabaseService();
+  
+  final AppointmentService _appointmentService = AppointmentService(); // Servicio (api_citas.dart)
+  final ApiRegistroPaciente _patientService = ApiRegistroPaciente();
+
 
   Patient? _selectedPatient;
   doctor_models.Doctor? _selectedDoctor;
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-  doctor_models.TimeOfDay? _selectedTime;
-  Province? _selectedProvince; // Nueva variable para la provincia seleccionada
+  
+  //doctor_models.TimeOfDay? _selectedTime;
+  TimeOfDay? _selectedTime;
+
+  ReferralCode? _selectedProvince;
   
   List<Patient> _patients = [];
-  List<doctor_models.TimeOfDay> _availableTimeSlots = [];
+
+  //List<doctor_models.TimeOfDay> _availableTimeSlots = [];
+  List<TimeOfDay> _availableTimeSlots = [];
+
+  List<ReferralCode> _provinces = [];
   bool _isLoading = false;
   bool _isLoadingTimeSlots = false;
 
@@ -85,7 +61,7 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
   void initState() {
     super.initState();
     _selectedPatient = widget.patient;
-    _loadPatients();
+    _loadInitialData();
     if (_selectedPatient?.referralCode != null) {
       _referralCodeController.text = _selectedPatient!.referralCode!;
     }
@@ -98,26 +74,47 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
     super.dispose();
   }
 
-  Future<void> _loadPatients() async {
-    try {
-      final patients = await _dbService.getAllPatients();
-      if (mounted) {
-        setState(() {
-          _patients = patients.where((p) => p.canScheduleAppointment).toList();
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar pacientes: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+  
+  
+  Future<void> _loadInitialData() async {
+  setState(() => _isLoading = true);
+
+  try {
+    // 🔹 PACIENTES → API de pacientes
+    final patientsJson = await _patientService.getPatients();
+
+    final patients = patientsJson
+        .map((json) => Patient.fromJson(json))
+        .toList();
+
+    if (!mounted) return;
+
+    setState(() {
+      _patients = patients
+          .where((p) => p.canScheduleAppointment)
+          .toList();
+
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al cargar datos: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
+
+
+
+  // Cargar horarios disponibles según doctor y fecha seleccionados
   Future<void> _loadAvailableTimeSlots() async {
     if (_selectedDoctor == null) return;
 
@@ -134,7 +131,7 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       
       if (mounted) {
         setState(() {
-          _availableTimeSlots = timeSlots;
+          _availableTimeSlots = timeSlots.cast<TimeOfDay>();
           _isLoadingTimeSlots = false;
         });
       }
@@ -152,7 +149,11 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       }
     }
   }
+ 
 
+
+
+  // Seleccionar fecha de la cita
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -168,7 +169,9 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       _loadAvailableTimeSlots();
     }
   }
+  
 
+  // Seleccionar doctor desde la lista de doctores
   Future<void> _selectDoctor() async {
     final doctor_models.Doctor? selectedDoctor = await Navigator.of(context).push(
       MaterialPageRoute(
@@ -187,7 +190,9 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       _loadAvailableTimeSlots();
     }
   }
+  
 
+  // Agendar cita usando el servicio de citas
   Future<void> _scheduleAppointment() async {
     if (!_formKey.currentState!.validate()) return;
     
@@ -201,16 +206,6 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       return;
     }
 
-    // Validación específica para pacientes de provincia
-    if (_selectedPatient!.isFromProvince && _selectedProvince == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debe seleccionar la provincia de origen'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
     if (_selectedDoctor == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -239,16 +234,14 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
         patient: _selectedPatient!,
         doctorId: _selectedDoctor!.id!,
         appointmentDate: _selectedDate,
-        appointmentTime: _selectedTime!,
+        appointmentTime: _selectedTime!,  
         stage: _selectedPatient!.currentStage,
         notes: _notesController.text.trim().isNotEmpty 
             ? _notesController.text.trim() 
             : null,
-        referralCode: _selectedPatient!.isFromProvince && _selectedProvince != null
-            ? _selectedProvince!.code  // Usar directamente el código de la provincia seleccionada
-            : (_referralCodeController.text.trim().isNotEmpty 
+        referralCode: _referralCodeController.text.trim().isNotEmpty 
                 ? _referralCodeController.text.trim() 
-                : null),
+                : null,
       );
 
       if (mounted) {
@@ -287,6 +280,9 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
     }
   }
 
+  
+
+  //DISEÑO DE LA PANTALLA
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -350,7 +346,7 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
                         )
                       else
                         DropdownButtonFormField<Patient>(
-                          value: _selectedPatient,
+                          initialValue: _selectedPatient,
                           decoration: const InputDecoration(
                             labelText: 'Seleccionar Paciente',
                             border: OutlineInputBorder(),
@@ -529,8 +525,8 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            DropdownButtonFormField<Province>(
-                              value: _selectedProvince,
+                            DropdownButtonFormField<ReferralCode>(
+                              initialValue: _selectedProvince,
                               decoration: const InputDecoration(
                                 labelText: 'Provincia de Origen *',
                                 border: OutlineInputBorder(),
@@ -539,17 +535,17 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
                               ),
                               hint: const Text('Seleccionar Provincia'),
                               isExpanded: true, // Para evitar overflow
-                              items: ecuadorianProvinces.map((Province province) {
-                                return DropdownMenuItem<Province>(
+                              items: _provinces.map((ReferralCode province) {
+                                return DropdownMenuItem<ReferralCode>(
                                   value: province,
                                   child: Text(
-                                    '${province.name} (${province.code})',
+                                    '${province.description} (${province.code})',
                                     style: const TextStyle(fontSize: 14),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 );
                               }).toList(),
-                              onChanged: (Province? newValue) {
+                              onChanged: (ReferralCode? newValue) {
                                 setState(() {
                                   _selectedProvince = newValue;
                                   if (newValue != null) {
@@ -654,3 +650,294 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
     );
   }
 }
+
+*/
+
+// INTERFAZ DE AGENDAMIENTO DE CITAS
+
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import '../models/patient.dart';
+import '../models/doctor.dart' as doctor_models;
+import '../services/appointment_service.dart';
+import '../services/api_registro_paciente.dart';
+import '../widgets/logout_button.dart';
+import 'doctor_list_screen.dart';
+
+class AppointmentSchedulingScreen extends StatefulWidget {
+  const AppointmentSchedulingScreen({super.key});
+
+  @override
+  State<AppointmentSchedulingScreen> createState() =>
+      _AppointmentSchedulingScreenState();
+}
+
+class _AppointmentSchedulingScreenState
+    extends State<AppointmentSchedulingScreen> {
+  
+  //final _formKey = GlobalKey<FormState>();
+  final _notesController = TextEditingController();
+  final _referralCodeController = TextEditingController();
+
+  final AppointmentService _appointmentService = AppointmentService();
+  final ApiRegistroPaciente _patientService = ApiRegistroPaciente();
+
+  List<Patient> _patients = [];
+  Patient? _selectedPatient;
+
+  doctor_models.Doctor? _selectedDoctor;
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  TimeOfDay? _selectedTime;
+
+  List<TimeOfDay> _availableTimeSlots = [];
+
+  bool _isLoading = false;
+  bool _isLoadingTimeSlots = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPatients();
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    _referralCodeController.dispose();
+    super.dispose();
+  }
+
+  // -----------------------------
+  // Cargar pacientes
+  // -----------------------------
+  Future<void> _loadPatients() async {
+    try {
+      final data = await _patientService.getPatients();
+      setState(() {
+        _patients = data.map((e) => Patient.fromJson(e)).toList();
+      });
+    } catch (e) {
+      _showError('Error al cargar pacientes');
+    }
+  }
+
+  // -----------------------------
+  // Horarios disponibles
+  // -----------------------------
+  Future<void> _loadAvailableTimeSlots() async {
+    if (_selectedDoctor == null) return;
+
+    setState(() {
+      _isLoadingTimeSlots = true;
+      _selectedTime = null;
+    });
+
+    final slots = await _appointmentService.getAvailableTimeSlots(
+      _selectedDoctor!.id!,
+      _selectedDate,
+    );
+
+    setState(() {
+      _availableTimeSlots = slots;
+      _isLoadingTimeSlots = false;
+    });
+  }
+
+  // -----------------------------
+  // Seleccionar fecha
+  // -----------------------------
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().add(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 90)),
+    );
+
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+      _loadAvailableTimeSlots();
+    }
+  }
+
+  // -----------------------------
+  // Seleccionar doctor
+  // -----------------------------
+  Future<void> _selectDoctor() async {
+    final doctor_models.Doctor? doctor =
+        await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DoctorListScreen(
+          onDoctorSelected: (doc) => Navigator.pop(context, doc),
+        ),
+      ),
+    );
+
+    if (doctor != null) {
+      setState(() => _selectedDoctor = doctor);
+      _loadAvailableTimeSlots();
+    }
+  }
+
+  // -----------------------------
+  // Guardar cita
+  // -----------------------------
+  Future<void> _scheduleAppointment() async {
+    if (_selectedPatient == null ||
+        _selectedDoctor == null ||
+        _selectedTime == null) {
+      _showError('Complete todos los campos');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _appointmentService.scheduleAppointment(
+        patient: _selectedPatient!,
+        doctorId: _selectedDoctor!.id!,
+        appointmentDate: _selectedDate,
+        appointmentTime: _selectedTime!,
+        stage: _selectedPatient!.currentStage.index, // 🔑 CLAVE
+        notes: _notesController.text.isNotEmpty
+            ? _notesController.text
+            : null,
+        referralCode: _referralCodeController.text.isNotEmpty
+            ? _referralCodeController.text
+            : null,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cita agendada correctamente'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      _showError('Error al agendar cita');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
+  }
+
+  // -----------------------------
+  // UI
+  // -----------------------------
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Agendar Cita'),
+        actions: const [LogoutButton()],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Paciente
+            DropdownButtonFormField<Patient>(
+              value: _selectedPatient,
+              hint: const Text('Seleccionar paciente'),
+              items: _patients
+                  .map(
+                    (p) => DropdownMenuItem(
+                      value: p,
+                      child: Text(p.fullName),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                setState(() => _selectedPatient = value);
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // Doctor
+            ListTile(
+              title: Text(
+                  _selectedDoctor?.fullName ?? 'Seleccionar doctor'),
+              trailing: const Icon(Icons.search),
+              onTap: _selectDoctor,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Fecha
+            ListTile(
+              title: const Text('Fecha'),
+              subtitle: Text(
+                DateFormat('dd/MM/yyyy').format(_selectedDate),
+              ),
+              onTap: _selectDate,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Horarios
+            if (_isLoadingTimeSlots)
+              const CircularProgressIndicator()
+            else
+              Wrap(
+                spacing: 8,
+                children: _availableTimeSlots.map((time) {
+                  final label =
+                      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+                  return ChoiceChip(
+                    label: Text(label),
+                    selected: _selectedTime == time,
+                    onSelected: (_) =>
+                        setState(() => _selectedTime = time),
+                  );
+                }).toList(),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Notas
+            TextField(
+              controller: _notesController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Notas de la consulta',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Código referencia
+            TextField(
+              controller: _referralCodeController,
+              decoration: const InputDecoration(
+                labelText: 'Código de referencia',
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            ElevatedButton(
+              onPressed: _isLoading ? null : _scheduleAppointment,
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text('Guardar Cita'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

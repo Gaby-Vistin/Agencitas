@@ -1,21 +1,26 @@
+/*import 'package:agencitas/services/mysql_service.dart';
 import '../models/patient.dart';
-import '../models/doctor.dart' as doctor_models;
+//import '../models/doctor.dart' as doctor_models;
 import '../models/appointment.dart';
-import 'database_service.dart';
+import 'package:flutter/material.dart';
+
 
 class AppointmentService {
   static final AppointmentService _instance = AppointmentService._internal();
   factory AppointmentService() => _instance;
   AppointmentService._internal();
 
-  final DatabaseService _dbService = DatabaseService();
+  final MySQLDatabaseService _dbService = MySQLDatabaseService();
 
   /// Validates if a patient can schedule an appointment
   Future<AppointmentValidationResult> validateAppointmentRequest({
     required Patient patient,
     required int doctorId,
     required DateTime appointmentDate,
-    required doctor_models.TimeOfDay appointmentTime,
+
+    //required doctor_models.TimeOfDay appointmentTime,
+    required TimeOfDay appointmentTime,
+
     required AppointmentStage stage,
     String? referralCode,
   }) async {
@@ -40,7 +45,7 @@ class AppointmentService {
       );
     }
 
-    // Validate referral code for province patients
+     // Validate referral code for province patients
     if (patient.isFromProvince || referralCode != null) {
       if (referralCode == null || referralCode.isEmpty) {
         return AppointmentValidationResult.error(
@@ -48,30 +53,21 @@ class AppointmentService {
         );
       }
 
-      // Lista de códigos de provincia válidos (códigos oficiales de Ecuador)
-      const validProvinceCodes = {
-        '01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
-        '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
-        '21', '22', '24', '26'
-      };
+      final code = await _dbService.getReferralCode(referralCode);
+      if (code == null) {
+        return AppointmentValidationResult.error('Código de referencia inválido o expirado');
+      }
 
-      // Si es un código de provincia válido, aceptarlo directamente
-      if (patient.isFromProvince && validProvinceCodes.contains(referralCode)) {
-        // Código de provincia válido, continuar con la validación
-      } else {
-        // Validar contra la base de datos para códigos regulares
-        final code = await _dbService.getReferralCodeByCode(referralCode);
-        if (code == null || !code.isValid) {
-          return AppointmentValidationResult.error('Código de referencia inválido o expirado');
-        }
-
-        if (patient.isFromProvince && !code.isForProvince) {
-          return AppointmentValidationResult.error(
-            'Este código no es válido para pacientes de provincia',
-          );
-        }
+      if (patient.isFromProvince && !code.isForProvince) {
+        return AppointmentValidationResult.error(
+          'Este código no es válido para pacientes de provincia',
+        );
       }
     }
+
+      
+
+
 
     // Check if doctor exists and is active
     final doctor = await _dbService.getDoctorById(doctorId);
@@ -172,10 +168,7 @@ class AppointmentService {
 
   /// Marks an appointment as completed and advances patient stage
   Future<void> completeAppointment(int appointmentId) async {
-    final appointments = await _dbService.getAllAppointments();
-    final appointment = appointments.where((a) => a.id == appointmentId).isNotEmpty 
-        ? appointments.where((a) => a.id == appointmentId).first 
-        : null;
+    final appointment = await _dbService.getAppointmentById(appointmentId);
     
     if (appointment == null) return;
 
@@ -200,10 +193,7 @@ class AppointmentService {
 
   /// Marks an appointment as no-show and updates patient missed count
   Future<void> markAppointmentAsNoShow(int appointmentId) async {
-    final appointments = await _dbService.getAllAppointments();
-    final appointment = appointments.where((a) => a.id == appointmentId).isNotEmpty 
-        ? appointments.where((a) => a.id == appointmentId).first 
-        : null;
+    final appointment = await _dbService.getAppointmentById(appointmentId);
     
     if (appointment == null) return;
 
@@ -239,10 +229,7 @@ class AppointmentService {
 
   /// Cancels an appointment
   Future<void> cancelAppointment(int appointmentId, String reason) async {
-    final appointments = await _dbService.getAllAppointments();
-    final appointment = appointments.where((a) => a.id == appointmentId).isNotEmpty 
-        ? appointments.where((a) => a.id == appointmentId).first 
-        : null;
+    final appointment = await _dbService.getAppointmentById(appointmentId);
     
     if (appointment == null) return;
 
@@ -254,6 +241,7 @@ class AppointmentService {
     );
     await _dbService.updateAppointment(updatedAppointment);
   }
+
 
   /// Cancels all future appointments for a patient
   Future<void> _cancelAllFutureAppointments(int patientId, String reason) async {
@@ -323,4 +311,233 @@ class ScheduleAppointmentResult {
 
   factory ScheduleAppointmentResult.error(String message) => 
       ScheduleAppointmentResult._(false, null, message);
+}
+*/
+
+//---------------------------------------------------------------
+//             SERVICIO DE CONEXION PARA AGENDAMIENTO DE CITAS
+//---------------------------------------------------------------
+// Conexcion: 
+//           Agencitas-API (routes/appointments.dart) 
+//           Agencitas (appointment_service.dart)
+
+//--------------------------------------
+// IMPORTACION DE LIBRERIAS
+//--------------------------------------
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+import '../models/appointment.dart';
+import '../models/patient.dart';
+
+class AppointmentService {
+  
+  static const String baseUrl = 'http://localhost:3000/api/appointments';
+  
+  // ----------------------------------
+  // METODO PARA LISTAR TODAS LAS CITAS
+  // ----------------------------------
+  Future<List<Appointment>> getAllAppointments() async {
+    final response = await http.get(Uri.parse(baseUrl));
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al obtener citas');
+    }
+
+    final List data = jsonDecode(response.body);
+    return data.map((e) => Appointment.fromJson(e)).toList();
+  }
+
+  // ---------------------------
+  // METODO PARA CREAR CITA
+  // ---------------------------
+  Future<void> scheduleAppointment({
+    required Patient patient,
+    required int doctorId,
+    required DateTime appointmentDate,
+    required TimeOfDay appointmentTime,
+    
+    required int stage,
+    String? notes,
+    String? referralCode,
+  }) async {
+    final response = await http.post(
+      Uri.parse(baseUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'patientId': patient.id,
+        'doctorId': doctorId,
+        'appointmentDate': appointmentDate.toIso8601String().split('T')[0],
+        'appointmentTime':
+            '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}',
+        'stage': stage,
+        'notes': notes,
+        'referralCode': referralCode,
+      }),
+    );
+
+    if (response.statusCode != 201) {
+      final data = jsonDecode(response.body);
+      throw Exception(data['error'] ?? 'Error al crear cita');
+    }
+  }
+
+  // ---------------------------------
+  // METODO PARA MARCA COMPLETAR CITA
+  // ---------------------------------
+  Future<void> completeAppointment(int id) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/$id/complete'),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al completar la cita');
+    }
+  }
+
+  // ---------------------------
+  // METODO PARA MARCAR NO SHOW (ASISITIO)
+  // ---------------------------
+  Future<void> markAppointmentAsNoShow(int id) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/$id/noshow'),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al marcar no show');
+    }
+  }
+
+  // ---------------------------
+  // METODO PARA CANCELAR CITA
+  // ---------------------------
+  Future<void> cancelAppointment(int id, String reason) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/$id/cancel'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'reason': reason}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al cancelar la cita');
+    }
+  }
+  
+  // ---------------------------
+  // METODO PARA ACTUALIZAR CITA
+  // ---------------------------
+  Future<void> updateAppointment({
+  required int id,
+  required DateTime appointmentDate,
+  required TimeOfDay appointmentTime,
+  required int stage,
+  String? notes,
+  String? referralCode,
+}) async {
+  final response = await http.put(
+    Uri.parse('$baseUrl/$id'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'appointmentDate': appointmentDate.toIso8601String().split('T')[0],
+      'appointmentTime': '${appointmentTime.hour.toString().padLeft(2,'0')}:${appointmentTime.minute.toString().padLeft(2,'0')}',
+      'stage': stage,
+      'notes': notes,
+      'referralCode': referralCode,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Error actualizando cita');
+  }
+}
+ 
+  // ---------------------------
+  // METODO PARA ELIMINAR CITA
+  // ---------------------------
+  Future<void> deleteAppointment(int id) async {
+  final response = await http.delete(Uri.parse('$baseUrl/$id'));
+  if (response.statusCode != 200) {
+    throw Exception('Error eliminando cita');
+  }
+}
+
+
+
+ 
+  //Cargar horarios disponibles
+  Future<List<TimeOfDay>> getAvailableTimeSlots(
+  int doctorId,
+  DateTime date,
+) async {
+
+  // Generar todos los horarios posibles
+  const startHour = 6;
+  const endHour = 17;
+  const intervalMinutes = 30;
+
+  final List<TimeOfDay> allSlots = [];
+
+  for (int hour = startHour; hour < endHour; hour++) {
+    allSlots.add(TimeOfDay(hour: hour, minute: 0));
+    allSlots.add(TimeOfDay(hour: hour, minute: intervalMinutes));
+  }
+
+  // Obtener horarios ocupados del backend
+  final occupiedSlots = await getOccupiedTimeSlots(doctorId, date);
+  // Filtrar los ocupados
+  final availableSlots = allSlots.where((slot) {
+    return !occupiedSlots.any((occupied) =>
+        occupied.hour == slot.hour &&
+        occupied.minute == slot.minute);
+  }).toList();
+
+  return availableSlots;
+}
+
+  //Cargar horarios ocupados
+  Future<List<TimeOfDay>> getOccupiedTimeSlots(
+  int doctorId,
+  DateTime date,
+) async {
+  final formattedDate = date.toIso8601String().split('T')[0];
+
+  final response = await http.get(
+    Uri.parse('$baseUrl/doctor/$doctorId/date/$formattedDate'),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Error al obtener horarios ocupados');
+  }
+
+  final List data = jsonDecode(response.body);
+
+  return data.map((e) {
+    final parts = e['appointmentTime'].split(':');
+    return TimeOfDay(
+      hour: int.parse(parts[0]),
+      minute: int.parse(parts[1]),
+    );
+  }).toList();
+}
+
+
+  // ---------------------------
+  // METODO PARA ESTADISTCIAS
+  // ---------------------------
+  
+  // TOTAL DE CITAS : Se llama getTotalPatients() que viene desde la Agencitas-API en routes/patients.dart)
+  Future<int> getTotalCitas() async {
+    final url = Uri.parse("$baseUrl/total");
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body)['total'];
+    }
+    throw Exception('Error obteniendo total');
+  }
+
+  
+
+
+
 }

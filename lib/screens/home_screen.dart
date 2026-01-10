@@ -1,12 +1,30 @@
-import 'package:flutter/material.dart';
-import '../models/appointment.dart';
-import '../services/database_service.dart';
-import '../widgets/logout_button.dart';
-import 'patient_registration_screen.dart';
-import 'patient_list_screen.dart';
-import 'doctor_list_screen.dart';
-import 'appointment_scheduling_screen.dart';
-import 'appointment_list_screen.dart';
+//---------------------------------------------------------------
+//             MENU PRINCIPAL - HOME SCREEN
+//---------------------------------------------------------------
+
+//--------------------------------------
+// IMPORTACION DE LIBRERIAS
+//--------------------------------------
+//import 'package:agencitas/services/mysql_service.dart';
+
+
+import 'package:flutter/material.dart'; //Flutter Framework
+import '../widgets/logout_button.dart'; // Boton de Cerrar Sesion
+
+// Importacion de servicios para conexion con la API
+import 'package:agencitas/services/api_doctores.dart';
+import 'package:agencitas/services/api_registro_paciente.dart';
+import 'package:agencitas/services/appointment_service.dart';
+
+// Importacion de pantallas
+import 'patient_registration_screen.dart'; // Pantalla de Registro de Pacientes
+import 'patient_list_screen.dart'; // Pantalla de Lista de Pacientes
+import 'doctor_list_screen.dart'; // Pantalla de Lista de Doctores
+import 'appointment_scheduling_screen.dart'; // Pantalla de Agendar Cita
+import 'appointment_list_screen.dart'; // Pantalla de Lista de Citas
+
+
+// CLASE PRINCIPAL - HOME SCREEN
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,37 +34,56 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final DatabaseService _dbService = DatabaseService();
-  int _totalPatients = 0;
-  int _todayAppointments = 0;
-  int _activePatients = 0;
-  bool _isLoading = true;
 
+  //final MySQLDatabaseService _dbService = MySQLDatabaseService();
+
+ // DELACARACION DE INSTANCIAS DE SERVICIOS (Agencitas/lib/services)
+  //Pacientes
+  final ApiRegistroPaciente api = ApiRegistroPaciente(); //Service (api_registro_paciente) 
+  //Citas
+  final AppointmentService apiCitas = AppointmentService(); //Servicio para citas (appointment_service.dart)
+  //Doctores
+  final ApiDoctores apiDoctores = ApiDoctores(); //Servicio (api_doctores.dart)
+
+  
+  //DECLARACION DE VARIABLES PARA ESTADISTICAS DE LAS METRICAS DEL DASHBOARD
+    
+    int _totalPatients = 0;//Total Pacientes
+    int _appointments = 0;//Variable para contar el total de citas  
+    int _activePatients = 0;//Varviables para pacientes activos
+    int _doctorCount = 0;//Variable para total de doctores
+    bool _isLoading = true;
+  
+  
   @override
   void initState() {
     super.initState();
     _loadDashboardData();
   }
 
+//---------------------------------
+// CARGAR LOS DATOS AL DASHBOARD
+//---------------------------------
+
   Future<void> _loadDashboardData() async {
     try {
-      final patients = await _dbService.getAllPatients();
-      final appointments = await _dbService.getAllAppointments();
-
-      final today = DateTime.now();
-      final todayAppointments = appointments.where((a) {
-        final appointmentDate = a.appointmentDate;
-        return appointmentDate.year == today.year &&
-            appointmentDate.month == today.month &&
-            appointmentDate.day == today.day &&
-            a.status == AppointmentStatus.scheduled;
-      }).length;
+      //PACIENTES (metodo llamado de "api_registro_paciente.dart")
+      final totalPatients = await api.getTotalPatients(); // Total de Pacientes
+      final activePatients = await api.getPatientsActivos();// Total de pacientes activos
+      //CITAS(metodo llamado de "appointment_service.dart")
+      final totalAppointments = await apiCitas.getTotalCitas(); // Total de Citas
+      //DOCTORES(metodo llamado de "api_doctores.dart")
+      final totalDoctores = await apiDoctores.getTotalDoctores(); // Total de Doctores
+    
+      
+      //final doctorCount = await _dbService.getDoctorCount();
 
       if (mounted) {
         setState(() {
-          _totalPatients = patients.length;
-          _activePatients = patients.where((p) => p.isActive).length;
-          _todayAppointments = todayAppointments;
+          _totalPatients = totalPatients;
+          _activePatients = activePatients;
+          _appointments = totalAppointments;
+          _doctorCount = totalDoctores;
           _isLoading = false;
         });
       }
@@ -55,10 +92,17 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _isLoading = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar datos: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
-
+ 
+ // Widget para las tarjetas del dashboard
   Widget _buildDashboardCard({
     required String title,
     required String value,
@@ -110,6 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+// Widget para los botones de acción
   Widget _buildActionButton({
     required String title,
     required String subtitle,
@@ -132,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: Icon(icon, color: color, size: 32),
               ),
+              
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -161,6 +207,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+//---------------------------------
+// INTERFAZ DEL MENU PRINCIPAL
+//---------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -209,9 +258,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisSpacing: isWeb ? 20 : 12,
                       mainAxisSpacing: isWeb ? 20 : 12,
                       children: [
+
+                        //muestra el total de pacientes registrados en el sistema
                         _buildDashboardCard(
                           title: 'Total Pacientes',
-                          value: _totalPatients.toString(),
+                          value: _totalPatients.toString(), //llama a la variable _totalPatients trae de la base muestra en texto
                           icon: Icons.people,
                           color: Colors.blue,
                           onTap: () {
@@ -222,6 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
+
                         _buildDashboardCard(
                           title: 'Pacientes Activos',
                           value: _activePatients.toString(),
@@ -237,23 +289,24 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
+
                         _buildDashboardCard(
                           title: 'Citas Hoy',
-                          value: _todayAppointments.toString(),
+                          value: _appointments.toString(),
                           icon: Icons.today,
                           color: Colors.orange,
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    const AppointmentListScreen(),
+                                builder: (context) =>const AppointmentListScreen(),
                               ),
                             );
                           },
                         ),
+
                         _buildDashboardCard(
                           title: 'Doctores',
-                          value: '3',
+                          value: _doctorCount.toString(),
                           icon: Icons.medical_services,
                           color: Colors.purple,
                           onTap: () {
@@ -269,13 +322,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               const SizedBox(height: 20), // Reducido de 32 a 20
-              // Action Buttons
+
+              // TITULO : ACCIONES PRINCIPALES DEL SISTEMA
               Text(
                 'Acciones Principales',
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
+
+              //Trageta de registrar paciente
               const SizedBox(height: 16),
               _buildActionButton(
                 title: 'Registrar Paciente',
@@ -285,12 +341,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () async {
                   await Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => const PatientRegistrationScreen(),
+                      builder: (context) => RegisterPatientPage(),
                     ),
                   );
                   _loadDashboardData(); // Refresh data
                 },
               ),
+
+              //Tarjeta de ver pacientes
+
+              const SizedBox(height: 12),
+              _buildActionButton(
+              title: 'Ver Pacientes',
+              subtitle: 'Consultar la lista de pacientes registrados',
+              icon: Icons.people,
+              color: Colors.teal,
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const PatientListScreen(), //pantalla de lista de pacientes (patient_list_screen.dart)
+                  ),
+                );
+              },
+            ),
+             
+             // Tarjeta de agendar cita
               const SizedBox(height: 12),
               _buildActionButton(
                 title: 'Agendar Cita',
@@ -306,6 +381,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   _loadDashboardData(); // Refresh data
                 },
               ),
+
+              // Tarjeta de ver citas agendadas
               const SizedBox(height: 12),
               _buildActionButton(
                 title: 'Ver Citas',
@@ -320,6 +397,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
+
+              // Tarjeta ver lista de doctores
               const SizedBox(height: 12),
               _buildActionButton(
                 title: 'Lista de Doctores',

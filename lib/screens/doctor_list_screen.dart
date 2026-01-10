@@ -1,6 +1,7 @@
+import 'package:agencitas/services/api_doctores.dart';
+//import 'package:agencitas/services/mysql_service.dart';
 import 'package:flutter/material.dart';
 import '../models/doctor.dart' as doctor_models;
-import '../services/database_service.dart';
 import '../widgets/logout_button.dart';
 
 class DoctorListScreen extends StatefulWidget {
@@ -13,7 +14,10 @@ class DoctorListScreen extends StatefulWidget {
 }
 
 class _DoctorListScreenState extends State<DoctorListScreen> {
-  final DatabaseService _dbService = DatabaseService();
+
+  // Instancia del servicio API
+  final ApiDoctores api = ApiDoctores();
+
   List<doctor_models.Doctor> _doctors = [];
   bool _isLoading = true;
 
@@ -25,23 +29,23 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
 
   Future<void> _loadDoctors() async {
     try {
-      final doctors = await _dbService.getAllDoctors();
-      if (mounted) {
-        setState(() {
-          _doctors = doctors;
-          _isLoading = false;
-        });
-      }
+      final response = await api.getDoctors();
+
+    final doctors = response
+        .map<doctor_models.Doctor>(
+            (json) => doctor_models.Doctor.fromJson(json))
+        .toList();
+
+    setState(() {
+      _doctors = doctors;
+      _isLoading = false;
+    });
     } catch (e) {
+      setState(() => _isLoading = false);
+
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar doctores: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error al cargar doctores')),
         );
       }
     }

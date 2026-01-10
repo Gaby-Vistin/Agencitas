@@ -1,7 +1,11 @@
+
+//INTERFAZ DE AGENDAR CITAS
+
+
+import 'package:agencitas/models/patient.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/appointment.dart';
-import '../models/patient.dart';
 import '../services/appointment_service.dart';
 import '../widgets/logout_button.dart';
 
@@ -31,50 +35,58 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
 
     try {
       final appointments = await _appointmentService.getAllAppointments();
-      if (mounted) {
-        setState(() {
-          _appointments = appointments;
-          _isLoading = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _appointments = appointments;
+        _isLoading = false;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar citas: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cargar citas: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
+  // Filtrar citas según el estado seleccionado
   List<Appointment> get _filteredAppointments {
     switch (_selectedFilter) {
       case 'scheduled':
-        return _appointments.where((a) => a.status == AppointmentStatus.scheduled).toList();
+        return _appointments
+            .where((a) => a.status == AppointmentStatus.scheduled)
+            .toList();
       case 'completed':
-        return _appointments.where((a) => a.status == AppointmentStatus.completed).toList();
+        return _appointments
+            .where((a) => a.status == AppointmentStatus.completed)
+            .toList();
       case 'cancelled':
-        return _appointments.where((a) => a.status == AppointmentStatus.cancelled).toList();
+        return _appointments
+            .where((a) => a.status == AppointmentStatus.cancelled)
+            .toList();
       case 'noShow':
-        return _appointments.where((a) => a.status == AppointmentStatus.noShow).toList();
+        return _appointments
+            .where((a) => a.status == AppointmentStatus.noShow)
+            .toList();
       case 'today':
         final today = DateTime.now();
         return _appointments.where((a) {
           final appointmentDate = a.appointmentDate;
           return appointmentDate.year == today.year &&
-                 appointmentDate.month == today.month &&
-                 appointmentDate.day == today.day;
+              appointmentDate.month == today.month &&
+              appointmentDate.day == today.day;
         }).toList();
       default:
         return _appointments;
     }
   }
 
+  // Mostrar acciones disponibles para una cita
   Future<void> _showAppointmentActions(Appointment appointment) async {
     showModalBottomSheet(
       context: context,
@@ -121,54 +133,53 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
     );
   }
 
+  // Marcar una cita como completada
   Future<void> _completeAppointment(Appointment appointment) async {
     try {
       await _appointmentService.completeAppointment(appointment.id!);
-      _loadAppointments();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cita marcada como completada'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      await _loadAppointments();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cita marcada como completada'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
+  // Marcar una cita como no se presentó
   Future<void> _markAsNoShow(Appointment appointment) async {
     try {
       await _appointmentService.markAppointmentAsNoShow(appointment.id!);
-      _loadAppointments();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cita marcada como no se presentó'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
+      await _loadAppointments();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cita marcada como no se presentó'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
+  // Cancelar una cita con motivo
   Future<void> _cancelAppointment(Appointment appointment) async {
     final reason = await showDialog<String>(
       context: context,
@@ -211,24 +222,22 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
           appointment.id!,
           reason.isNotEmpty ? reason : 'Cancelado por el usuario',
         );
-        _loadAppointments();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cita cancelada'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+        await _loadAppointments();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cita cancelada'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -256,10 +265,11 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      appointment.patient?.fullName ?? 'Paciente no encontrado',
+                      // Usar getter seguro para mostrar siempre el nombre
+                      appointment.patientFullName,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                   ),
                   Container(
@@ -279,6 +289,8 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   ),
                 ],
               ),
+
+              // Detalles de la cita
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -286,19 +298,22 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '${appointment.doctor?.fullName ?? 'Doctor no encontrado'} - ${appointment.doctor?.specialty ?? ''}',
+                      'Dr. ${appointment.doctorFullName} - ${appointment.doctor?.specialty ?? ''}',
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   ),
                 ],
               ),
+
+              // Fecha y hora de la cita
               const SizedBox(height: 8),
               Row(
                 children: [
                   Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 8),
                   Text(
-                    DateFormat('EEEE, dd MMMM yyyy', 'es_ES').format(appointment.appointmentDate),
+                    DateFormat('EEEE, dd MMMM yyyy', 'es_ES')
+                        .format(appointment.appointmentDate),
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ],
@@ -316,7 +331,10 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .secondary
+                          .withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -348,7 +366,8 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   ],
                 ),
               ],
-              if (appointment.isPastDue && appointment.status == AppointmentStatus.scheduled) ...[
+              if (appointment.isPastDue &&
+                  appointment.status == AppointmentStatus.scheduled) ...[
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -357,10 +376,10 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
-                    children: [
-                      const Icon(Icons.warning, color: Colors.red, size: 16),
-                      const SizedBox(width: 8),
-                      const Expanded(
+                    children: const [
+                      Icon(Icons.warning, color: Colors.red, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
                         child: Text(
                           'Cita vencida - Se marcará automáticamente como no presentado',
                           style: TextStyle(color: Colors.red, fontSize: 12),
@@ -399,7 +418,7 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   FilterChip(
                     label: const Text('Todas'),
                     selected: _selectedFilter == 'all',
-                    onSelected: (selected) {
+                    onSelected: (_) {
                       setState(() {
                         _selectedFilter = 'all';
                       });
@@ -409,7 +428,7 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   FilterChip(
                     label: const Text('Hoy'),
                     selected: _selectedFilter == 'today',
-                    onSelected: (selected) {
+                    onSelected: (_) {
                       setState(() {
                         _selectedFilter = 'today';
                       });
@@ -419,7 +438,7 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   FilterChip(
                     label: const Text('Programadas'),
                     selected: _selectedFilter == 'scheduled',
-                    onSelected: (selected) {
+                    onSelected: (_) {
                       setState(() {
                         _selectedFilter = 'scheduled';
                       });
@@ -429,7 +448,7 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   FilterChip(
                     label: const Text('Completadas'),
                     selected: _selectedFilter == 'completed',
-                    onSelected: (selected) {
+                    onSelected: (_) {
                       setState(() {
                         _selectedFilter = 'completed';
                       });
@@ -439,7 +458,7 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   FilterChip(
                     label: const Text('Canceladas'),
                     selected: _selectedFilter == 'cancelled',
-                    onSelected: (selected) {
+                    onSelected: (_) {
                       setState(() {
                         _selectedFilter = 'cancelled';
                       });
@@ -449,7 +468,7 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   FilterChip(
                     label: const Text('No se presentó'),
                     selected: _selectedFilter == 'noShow',
-                    onSelected: (selected) {
+                    onSelected: (_) {
                       setState(() {
                         _selectedFilter = 'noShow';
                       });
@@ -475,10 +494,11 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              _selectedFilter == 'all' 
+                              _selectedFilter == 'all'
                                   ? 'No hay citas registradas'
                                   : 'No hay citas con este filtro',
-                              style: const TextStyle(fontSize: 18, color: Colors.grey),
+                              style: const TextStyle(
+                                  fontSize: 18, color: Colors.grey),
                             ),
                           ],
                         ),
@@ -489,7 +509,8 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: _filteredAppointments.length,
                           itemBuilder: (context, index) {
-                            return _buildAppointmentCard(_filteredAppointments[index]);
+                            return _buildAppointmentCard(
+                                _filteredAppointments[index]);
                           },
                         ),
                       ),

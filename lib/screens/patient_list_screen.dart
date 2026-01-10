@@ -1,6 +1,12 @@
+// -----------------------------------------------
+// SCREEN PARA MOSTARS EL LISTADO DE PACIENTES
+// -----------------------------------------------
+
+import 'package:agencitas/services/api_registro_paciente.dart';
+//import 'package:agencitas/services/mysql_service.dart';
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
-import '../services/database_service.dart';
+//import '../services/database_service.dart';
 import '../widgets/logout_button.dart';
 import 'patient_edit_screen.dart';
 
@@ -17,7 +23,10 @@ class PatientListScreen extends StatefulWidget {
 }
 
 class _PatientListScreenState extends State<PatientListScreen> {
-  final DatabaseService _dbService = DatabaseService();
+
+  // Instancia del servicio API
+  final ApiRegistroPaciente api = ApiRegistroPaciente();
+  
   List<Patient> _patients = [];
   List<Patient> _filteredPatients = [];
   bool _isLoading = true;
@@ -35,24 +44,30 @@ class _PatientListScreenState extends State<PatientListScreen> {
     _searchController.dispose();
     super.dispose();
   }
-
+  
+  // Cargar lista de pacientes desde la API
   Future<void> _loadPatients() async {
     try {
-      final patients = await _dbService.getAllPatients();
+      final response = await api.getPatients();
+
+      final patients = response
+          .map<Patient>((json) => Patient.fromJson(json))
+          .toList();
+
       setState(() {
-        _patients = widget.showOnlyActive 
+        _patients = widget.showOnlyActive
             ? patients.where((p) => p.isActive).toList()
             : patients;
+
         _filteredPatients = _patients;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar pacientes: $e')),
+          SnackBar(content: Text('Error al cargar pacientes')),
         );
       }
     }
@@ -153,6 +168,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
                                   children: [
                                     Text('Identificación: ${patient.identification}'),
                                     Text('Teléfono: ${patient.phone}'),
+                                    Text('Email: ${patient.email}'),
                                     if (!patient.isActive)
                                       const Text(
                                         'Inactivo',
@@ -199,7 +215,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
       ),
     );
   }
+  
 
+  // Mostrar detalles del paciente en un cuadro de diálogo
   void _showPatientDetails(Patient patient) {
     showDialog(
       context: context,
@@ -222,11 +240,17 @@ class _PatientListScreenState extends State<PatientListScreen> {
             Text('Estado: ${patient.isActive ? 'Activo' : 'Inactivo'}'),
           ],
         ),
+
+        // Botones de acción del cuadro de diálogo
         actions: [
+
+          // Botón para cerrar el cuadro de diálogo
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cerrar'),
           ),
+
+          // Botón para editar paciente
           ElevatedButton.icon(
             onPressed: () async {
               Navigator.of(context).pop();
@@ -246,6 +270,52 @@ class _PatientListScreenState extends State<PatientListScreen> {
               foregroundColor: Colors.white,
             ),
           ),
+          
+          //Boton para eliminar paciente
+          ElevatedButton.icon(
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Confirmar eliminación'),
+                  content: const Text('¿Estás seguro de que deseas eliminar este paciente?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancelar'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Eliminar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                final success = await api.deletePatient(patient.id!); // Llamada a la API para eliminar paciente
+                if (success) {
+                  Navigator.of(context).pop();
+                  _loadPatients();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Error al eliminar paciente')),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.delete),
+            label: const Text('Eliminar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+            ),
+          ),
+        
         ],
       ),
     );

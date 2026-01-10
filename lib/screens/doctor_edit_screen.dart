@@ -1,3 +1,4 @@
+import 'package:agencitas/services/mysql_service.dart';
 import 'package:flutter/material.dart';
 import '../models/doctor.dart';
 
@@ -5,9 +6,9 @@ class DoctorEditScreen extends StatefulWidget {
   final Doctor doctor;
 
   const DoctorEditScreen({
-    Key? key,
+    super.key,
     required this.doctor,
-  }) : super(key: key);
+  });
 
   @override
   State<DoctorEditScreen> createState() => _DoctorEditScreenState();
@@ -64,8 +65,8 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
         updatedAt: DateTime.now(),
       );
 
-      // Aquí se actualizaría en la base de datos
-      // await DatabaseService().updateDoctor(updatedDoctor);
+      // Actualizar en la base de datos
+      await MySQLDatabaseService().updateDoctor(updatedDoctor);
 
       setState(() {
         _isLoading = false;
@@ -425,4 +426,5 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
       ),
     );
   }
+
 }

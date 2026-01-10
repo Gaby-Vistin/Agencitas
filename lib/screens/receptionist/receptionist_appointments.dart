@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import '../patient_registration_screen.dart';
 import '../appointment_scheduling_screen.dart';
 import '../appointment_list_screen.dart';
@@ -41,7 +41,7 @@ class _ReceptionistAppointmentsState extends State<ReceptionistAppointments> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const PatientRegistrationScreen(),
+                    builder: (context) => RegisterPatientPage(),
                   ),
                 );
               },
@@ -155,3 +155,4 @@ class _ReceptionistAppointmentsState extends State<ReceptionistAppointments> {
     );
   }
 }
+*/

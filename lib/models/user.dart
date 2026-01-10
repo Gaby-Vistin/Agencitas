@@ -1,21 +1,24 @@
 enum UserRole {
-  director,
-  doctor,
-  nurse,
-  receptionist,
-  patient;
+  administrador, //1
+  director, //2
+  doctor, //3
+  nurse, //4 ADMINISTRADOIR 
+  receptionist, // 5
+  patient; // 6
 
   String get displayName {
     switch (this) {
-      case UserRole.director:
+      case UserRole.administrador:
         return 'Director';
-      case UserRole.doctor:
+      case UserRole.director:
+        return 'Director'; //1
+      case UserRole.doctor: //2
         return 'Doctor';
-      case UserRole.nurse:
+      case UserRole.nurse: //3
         return 'Enfermera';
-      case UserRole.receptionist:
+      case UserRole.receptionist: //4
         return 'Recepcionista';
-      case UserRole.patient:
+      case UserRole.patient: //5
         return 'Paciente';
     }
   }
@@ -32,6 +35,8 @@ enum UserRole {
         return 'Registro de pacientes y agenda de citas';
       case UserRole.patient:
         return 'Gestión personal de citas y seguimiento médico';
+      case UserRole.administrador:
+        return 'Acceso total al sistema';
     }
   }
 }

@@ -1,16 +1,19 @@
+import 'package:agencitas/models/appointment.dart';
+import 'package:agencitas/services/api_registro_paciente.dart';
+//import 'package:agencitas/services/mysql_service.dart';
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
 import '../models/patient.dart';
-import '../services/database_service.dart';
-import 'patient_registration_screen.dart';
+//import '../services/database_service.dart';
+//import 'patient_registration_screen.dart';
 
 class PatientEditScreen extends StatefulWidget {
   final Patient patient;
 
   const PatientEditScreen({
-    Key? key,
+    super.key,
     required this.patient,
-  }) : super(key: key);
+  });
 
   @override
   State<PatientEditScreen> createState() => _PatientEditScreenState();
@@ -29,9 +32,12 @@ class _PatientEditScreenState extends State<PatientEditScreen> {
   late DateTime _selectedBirthDate;
   late bool _isFromProvince;
   bool _isLoading = false;
-  Province? _selectedProvince;
+  List<ReferralCode> _provinces = [];
+  ReferralCode? _selectedProvince;
 
-  final DatabaseService _dbService = DatabaseService();
+  // Instancia del servicio API
+  final ApiRegistroPaciente api = ApiRegistroPaciente();
+  
 
   @override
   void initState() {
@@ -47,14 +53,49 @@ class _PatientEditScreenState extends State<PatientEditScreen> {
     _selectedBirthDate = widget.patient.birthDate;
     _isFromProvince = widget.patient.isFromProvince;
     
-    // Buscar la provincia si tiene código de referencia
-    if (widget.patient.referralCode != null && widget.patient.referralCode!.isNotEmpty) {
-      _selectedProvince = ecuadorianProvinces.firstWhere(
-        (p) => p.code == widget.patient.referralCode,
-        orElse: () => ecuadorianProvinces.first,
-      );
+    //_loadProvinces();
+  }
+  /*
+  Future<void> _loadProvinces() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final provinces = await _dbService.getProvinceReferralCodes();
+      setState(() {
+        _provinces = provinces;
+        
+        // Buscar la provincia si tiene código de referencia
+        if (widget.patient.referralCode != null && widget.patient.referralCode!.isNotEmpty) {
+          try {
+            _selectedProvince = _provinces.firstWhere(
+              (p) => p.code == widget.patient.referralCode,
+            );
+          } catch (_) {
+            // Si no se encuentra el código, no seleccionamos nada
+            _selectedProvince = null;
+          }
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar provincias: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
+ 
+  */
 
   @override
   void dispose() {
@@ -83,67 +124,70 @@ class _PatientEditScreenState extends State<PatientEditScreen> {
       });
     }
   }
+  
+  //Función para actualizar la información del paciente
+Future<void> _updatePatient() async {
+  if (!_formKey.currentState!.validate()) return;
 
-  Future<void> _updatePatient() async {
-    if (!_formKey.currentState!.validate()) {
+  setState(() => _isLoading = true);
+
+  try {
+    final currentData = {
+      "name": _nameController.text.trim(),
+      "lastName": _lastNameController.text.trim(),
+      "identification": _identificationController.text.trim(),
+      "email": _emailController.text.trim(),
+      "phone": _phoneController.text.trim(),
+      "address": _addressController.text.trim(),
+      "referralCode": _referralCodeController.text.trim().isEmpty
+          ? null
+          : _referralCodeController.text.trim(),
+      "birthDate":
+          _selectedBirthDate.toIso8601String().split('T').first,
+      "isFromProvince": _isFromProvince ? 1 : 0,
+    };
+
+    final originalData = widget.patient.toPatchJson();
+
+    final changes = Map.fromEntries(
+      currentData.entries.where(
+        (e) => e.value != originalData[e.key],
+      ),
+    );
+
+    if (changes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay cambios para guardar')),
+      );
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    await api.updatePatient(widget.patient.id!, changes);
 
-    try {
-      // Crear paciente actualizado
-      final updatedPatient = Patient(
-        id: widget.patient.id,
-        name: _nameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        identification: _identificationController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim(),
-        birthDate: _selectedBirthDate,
-        address: _addressController.text.trim(),
-        referralCode: _referralCodeController.text.trim().isNotEmpty 
-            ? _referralCodeController.text.trim() 
-            : null,
-        isFromProvince: _isFromProvince,
-        missedAppointments: widget.patient.missedAppointments,
-        currentStage: widget.patient.currentStage,
-        isActive: widget.patient.isActive,
-        createdAt: widget.patient.createdAt,
-        updatedAt: DateTime.now(),
-      );
+    if (!mounted) return;
 
-      await _dbService.updatePatient(updatedPatient);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Paciente actualizado exitosamente'),
+        backgroundColor: Colors.green,
+      ),
+    );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Paciente actualizado exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.of(context).pop(true); // Retornar true para indicar que se actualizó
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al actualizar paciente: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+    Navigator.of(context).pop(true);
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al actualizar paciente: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}
 
+
+  //Diseño de la pantalla de edición de paciente
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -348,8 +392,8 @@ class _PatientEditScreenState extends State<PatientEditScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          DropdownButtonFormField<Province>(
-                            value: _selectedProvince,
+                          DropdownButtonFormField<ReferralCode>(
+                            initialValue: _selectedProvince,
                             decoration: const InputDecoration(
                               labelText: 'Provincia de Origen *',
                               border: OutlineInputBorder(),
@@ -358,17 +402,17 @@ class _PatientEditScreenState extends State<PatientEditScreen> {
                             ),
                             hint: const Text('Seleccionar Provincia'),
                             isExpanded: true,
-                            items: ecuadorianProvinces.map((Province province) {
-                              return DropdownMenuItem<Province>(
+                            items: _provinces.map((ReferralCode province) {
+                              return DropdownMenuItem<ReferralCode>(
                                 value: province,
                                 child: Text(
-                                  '${province.name} (${province.code})',
+                                  '${province.description} (${province.code})',
                                   style: const TextStyle(fontSize: 14),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               );
                             }).toList(),
-                            onChanged: (Province? newValue) {
+                            onChanged: (ReferralCode? newValue) {
                               setState(() {
                                 _selectedProvince = newValue;
                                 if (newValue != null) {
@@ -390,18 +434,23 @@ class _PatientEditScreenState extends State<PatientEditScreen> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.orange[50],
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.orange[200]!),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.qr_code, color: Colors.orange[700]),
+                                  Icon(
+                                    Icons.qr_code, 
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Código: ${_selectedProvince!.code}',
                                     style: TextStyle(
-                                      color: Colors.orange[700],
+                                      color: Theme.of(context).colorScheme.primary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),

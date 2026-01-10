@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import 'receptionist_doctors.dart';
 import 'receptionist_patients.dart';
-import 'receptionist_appointments.dart';
+//import 'receptionist_appointments.dart';
 import '../change_password_screen.dart';
 
 class ReceptionistDashboard extends StatefulWidget {
@@ -26,7 +26,7 @@ class _ReceptionistDashboardState extends State<ReceptionistDashboard> {
   void initState() {
     super.initState();
     _pages = [
-      const ReceptionistAppointments(),
+      //const ReceptionistAppointments(),
       const ReceptionistPatients(),
       const ReceptionistDoctors(),
     ];

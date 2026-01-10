@@ -1,3 +1,6 @@
+
+
+
 import 'package:flutter/material.dart';
 import '../../models/patient.dart';
 
@@ -586,7 +589,7 @@ class _DoctorPatientsState extends State<DoctorPatients> {
                   _buildInfoItem('Citas Perdidas', patient.missedAppointments.toString()),
                   _buildInfoItem('Estado', patient.isActive ? 'Activo' : 'Inactivo'),
                   _buildInfoItem('Fecha de Registro', 
-                    '${patient.createdAt.day}/${patient.createdAt.month}/${patient.createdAt.year}'),
+                    '${patient.createdAt?.day}/${patient.createdAt?.month}/${patient.createdAt?.year}'),
                 ]),
                 
                 const SizedBox(height: 16),
@@ -737,6 +740,8 @@ class _DoctorPatientsState extends State<DoctorPatients> {
     );
   }
 
+
+
   void _scheduleAppointment(Patient patient) {
     if (!patient.canScheduleAppointment) {
       showDialog(
@@ -759,6 +764,10 @@ class _DoctorPatientsState extends State<DoctorPatients> {
       return;
     }
 
+
+
+    // Lógica para agendar una cita (De acuerdo al doctor)
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Agendar cita para ${patient.fullName}'),
@@ -772,6 +781,10 @@ class _DoctorPatientsState extends State<DoctorPatients> {
       ),
     );
   }
+
+
+
+
 
   void _addNoteToPatient(Patient patient) {
     String note = '';

@@ -1,6 +1,6 @@
+import 'package:agencitas/services/mysql_service.dart';
 import 'package:flutter/material.dart';
 import '../../models/patient.dart';
-import '../../services/database_service.dart';
 import '../patient_edit_screen.dart';
 
 class ReceptionistPatients extends StatefulWidget {
@@ -11,7 +11,7 @@ class ReceptionistPatients extends StatefulWidget {
 }
 
 class _ReceptionistPatientsState extends State<ReceptionistPatients> {
-  final DatabaseService _dbService = DatabaseService();
+  final MySQLDatabaseService _dbService = MySQLDatabaseService();
   bool _isLoading = true;
   List<Patient> _patients = [];
   String _searchQuery = '';
@@ -312,7 +312,9 @@ class _ReceptionistPatientsState extends State<ReceptionistPatients> {
     }
     return age;
   }
+  
 
+  //CUADRO DE DIALOGO DEL PACIENTE
   void _viewPatientDetails(Patient patient) {
     showDialog(
       context: context,
