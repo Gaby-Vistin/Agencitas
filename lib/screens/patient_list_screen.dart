@@ -6,6 +6,7 @@ import 'package:agencitas/services/api_registro_paciente.dart';
 //import 'package:agencitas/services/mysql_service.dart';
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
+import '../models/user.dart';
 //import '../services/database_service.dart';
 import '../widgets/logout_button.dart';
 import 'patient_edit_screen.dart';
@@ -167,8 +168,27 @@ class _PatientListScreenState extends State<PatientListScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text('Identificación: ${patient.identification}'),
-                                    Text('Teléfono: ${patient.phone}'),
-                                    Text('Email: ${patient.email}'),
+                                    if (patient.phoneMobile != null && patient.phoneMobile!.isNotEmpty)
+                                      Text('Celular: ${patient.phoneMobile}'),
+                                    if (patient.phoneConventional != null && patient.phoneConventional!.isNotEmpty)
+                                      Text('Teléfono: ${patient.phoneConventional}'),
+                                    if (patient.email != null && patient.email!.isNotEmpty)
+                                      Text('Email: ${patient.email}'),
+                                    if (patient.isPriority)
+                                      Row(
+                                        children: [
+                                          Icon(Icons.star, size: 14, color: Colors.red[700]),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Paciente Prioritario',
+                                            style: TextStyle(
+                                              color: Colors.red[700],
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     if (!patient.isActive)
                                       const Text(
                                         'Inactivo',
@@ -229,15 +249,33 @@ class _PatientListScreenState extends State<PatientListScreen> {
           children: [
             Text('Identificación: ${patient.identification}'),
             const SizedBox(height: 8),
-            Text('Teléfono: ${patient.phone}'),
-            const SizedBox(height: 8),
-            Text('Email: ${patient.email}'),
-            const SizedBox(height: 8),
+            if (patient.phoneMobile != null && patient.phoneMobile!.isNotEmpty) ...[
+              Text('Celular: ${patient.phoneMobile}'),
+              const SizedBox(height: 8),
+            ],
+            if (patient.phoneConventional != null && patient.phoneConventional!.isNotEmpty) ...[
+              Text('Teléfono: ${patient.phoneConventional}'),
+              const SizedBox(height: 8),
+            ],
+            if (patient.email != null && patient.email!.isNotEmpty) ...[
+              Text('Email: ${patient.email}'),
+              const SizedBox(height: 8),
+            ],
             Text('Fecha de nacimiento: ${patient.birthDate.day}/${patient.birthDate.month}/${patient.birthDate.year}'),
             const SizedBox(height: 8),
-            Text('Dirección: ${patient.address}'),
-            const SizedBox(height: 8),
+            if (patient.address != null && patient.address!.isNotEmpty) ...[
+              Text('Dirección: ${patient.address}'),
+              const SizedBox(height: 8),
+            ],
             Text('Estado: ${patient.isActive ? 'Activo' : 'Inactivo'}'),
+            const SizedBox(height: 8),
+            Text('Tipo de Seguro: ${_getInsuranceTypeText(patient.insuranceType)}',
+              style: TextStyle(fontWeight: FontWeight.w500, color: Colors.blue[700])),
+            if (patient.acceptedAt != null) ...[
+              const SizedBox(height: 8),
+              Text('Aceptó registro: ${patient.acceptedAt!.day}/${patient.acceptedAt!.month}/${patient.acceptedAt!.year} ${patient.acceptedAt!.hour}:${patient.acceptedAt!.minute.toString().padLeft(2, '0')}',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700])),
+            ],
           ],
         ),
 
@@ -271,53 +309,92 @@ class _PatientListScreenState extends State<PatientListScreen> {
             ),
           ),
           
-          //Boton para eliminar paciente
-          ElevatedButton.icon(
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Confirmar eliminación'),
-                  content: const Text('¿Estás seguro de que deseas eliminar este paciente?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Cancelar'),
+          // Botón para eliminar paciente - Solo para director y administrador
+          if (SessionManager.isAdminOrDirector())
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Cerrar diálogo de detalles primero
+                
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Confirmar eliminación'),
+                    content: Text(
+                      '¿Estás seguro de que deseas eliminar al paciente ${patient.name} ${patient.lastName}?\n\n'
+                      'Esta acción no se puede deshacer.',
                     ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: const Text('Eliminar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Cancelar'),
                       ),
-                    ),
-                  ],
-                ),
-              );
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Eliminar'),
+                      ),
+                    ],
+                  ),
+                );
 
-              if (confirm == true) {
-                final success = await api.deletePatient(patient.id!); // Llamada a la API para eliminar paciente
-                if (success) {
-                  Navigator.of(context).pop();
-                  _loadPatients();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Error al eliminar paciente')),
-                  );
+                if (confirm == true && mounted) {
+                  try {
+                    final success = await api.deletePatient(patient.id!);
+                    
+                    if (mounted) {
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Paciente eliminado exitosamente'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        _loadPatients(); // Recargar lista
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Error al eliminar paciente'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 }
-              }
-            },
-            icon: const Icon(Icons.delete),
-            label: const Text('Eliminar'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red[700],
-              foregroundColor: Colors.white,
+              },
+              icon: const Icon(Icons.delete),
+              label: const Text('Eliminar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[700],
+                foregroundColor: Colors.white,
+              ),
             ),
-          ),
         
         ],
       ),
     );
+  }
+
+  String _getInsuranceTypeText(InsuranceType type) {
+    switch (type) {
+      case InsuranceType.none:
+        return 'Sin seguro';
+      case InsuranceType.public:
+        return 'Público';
+      case InsuranceType.private:
+        return 'Privado';
+    }
   }
 }

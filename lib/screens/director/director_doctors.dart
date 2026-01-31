@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../models/doctor.dart';
 import '../../models/appointment.dart';
+import '../../models/user.dart';
+import '../../services/api_doctores.dart';
 import '../doctor_edit_screen.dart';
+import '../doctor_create_screen.dart';
 
 class DirectorDoctors extends StatefulWidget {
   const DirectorDoctors({Key? key}) : super(key: key);
@@ -16,6 +19,8 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
   List<Appointment> _appointments = [];
   String _searchQuery = '';
 
+  final ApiDoctores _api = ApiDoctores();
+
   @override
   void initState() {
     super.initState();
@@ -23,27 +28,27 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
   }
 
   Future<void> _loadDoctors() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Simulación de carga de datos
-      // En una aplicación real, aquí cargarías desde la base de datos
-      await Future.delayed(const Duration(milliseconds: 300));
-      
+      final response = await _api.getDoctors();
+      final doctors = response
+          .map<Doctor>((json) => Doctor.fromJson(json))
+          .toList();
+
+      if (!mounted) return;
+
       setState(() {
-        _doctors = []; // Cargar desde la base de datos
-        _appointments = []; // Cargar desde la base de datos
+        _doctors = doctors;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      if (!mounted) return;
+      
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error al cargar médicos: $e'),
+          content: Text('Error al cargar profesionales: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -291,7 +296,7 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
                       Icon(Icons.phone, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Text(
-                        doctor.phone,
+                        doctor.phone ?? 'Sin teléfono',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -424,37 +429,28 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
     );
   }
 
-  void _showAddDoctorDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Agregar Nuevo Médico'),
-        content: const Text('Esta funcionalidad abrirá un formulario para registrar un nuevo médico.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showDoctorForm();
-            },
-            child: const Text('Continuar'),
-          ),
-        ],
+  void _showAddDoctorDialog() async {
+    // Verificar permisos
+    if (!SessionManager.isAdminOrDirector()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No tiene permisos para crear profesionales'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DoctorCreateScreen(),
       ),
     );
-  }
 
-  void _showDoctorForm() {
-    // Aquí implementarías el formulario completo para agregar/editar médico
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Funcionalidad de formulario de médico pendiente'),
-        backgroundColor: Colors.blue,
-      ),
-    );
+    if (result == true) {
+      _loadDoctors();
+    }
   }
 
   void _showDoctorSchedule(Doctor doctor) {
@@ -564,6 +560,17 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
   }
 
   Future<void> _editDoctor(Doctor doctor) async {
+    // Verificar permisos
+    if (!SessionManager.isAdminOrDirector()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No tiene permisos para editar profesionales'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -576,11 +583,22 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
     }
   }
 
-  void _toggleDoctorStatus(Doctor doctor) {
-    showDialog(
+  void _toggleDoctorStatus(Doctor doctor) async {
+    // Verificar permisos
+    if (!SessionManager.hasRole(UserRole.director)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No tiene permisos para modificar profesionales'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    final shouldToggle = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${doctor.isActive ? 'Desactivar' : 'Activar'} Médico'),
+        title: Text('${doctor.isActive ? 'Desactivar' : 'Activar'} Profesional'),
         content: Text(
           doctor.isActive
               ? '¿Está seguro que desea desactivar a ${doctor.fullName}? No podrá recibir nuevas citas.'
@@ -588,20 +606,11 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Aquí actualizarías el estado en la base de datos
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Médico ${doctor.isActive ? 'desactivado' : 'activado'}'),
-                  backgroundColor: doctor.isActive ? Colors.orange : Colors.green,
-                ),
-              );
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: doctor.isActive ? Colors.orange : Colors.green,
             ),
@@ -610,37 +619,91 @@ class _DirectorDoctorsState extends State<DirectorDoctors> {
         ],
       ),
     );
+
+    if (shouldToggle == true) {
+      try {
+        await _api.updateDoctor(doctor.id!, {
+          'isActive': doctor.isActive ? 0 : 1,
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Profesional ${doctor.isActive ? 'desactivado' : 'activado'}'),
+              backgroundColor: doctor.isActive ? Colors.orange : Colors.green,
+            ),
+          );
+          _loadDoctors();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
-  void _showDeleteConfirmation(Doctor doctor) {
-    showDialog(
+  void _showDeleteConfirmation(Doctor doctor) async {
+    // Verificar permisos
+    if (!SessionManager.isAdminOrDirector()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No tiene permisos para eliminar profesionales'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar Médico'),
+        title: const Text('Eliminar Profesional'),
         content: Text(
           '¿Está seguro que desea eliminar a ${doctor.fullName}? Esta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Aquí eliminarías el médico de la base de datos
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Médico eliminado'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Eliminar'),
           ),
         ],
       ),
     );
+
+    if (shouldDelete == true) {
+      try {
+        await _api.deleteDoctor(doctor.id!);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profesional eliminado exitosamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _loadDoctors();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al eliminar: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }

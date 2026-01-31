@@ -1,8 +1,7 @@
-/*import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../patient_registration_screen.dart';
 import '../appointment_scheduling_screen.dart';
 import '../appointment_list_screen.dart';
-import 'receptionist_doctors.dart';
 
 class ReceptionistAppointments extends StatefulWidget {
   const ReceptionistAppointments({Key? key}) : super(key: key);
@@ -65,7 +64,7 @@ class _ReceptionistAppointmentsState extends State<ReceptionistAppointments> {
             const SizedBox(height: 12),
             _buildActionCard(
               context,
-              title: 'Ver Citas',
+              title: 'Ver Todas las Citas',
               subtitle: 'Consultar todas las citas programadas',
               icon: Icons.list_alt,
               color: Colors.orange[400]!,
@@ -74,22 +73,6 @@ class _ReceptionistAppointmentsState extends State<ReceptionistAppointments> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const AppointmentListScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildActionCard(
-              context,
-              title: 'Lista de Doctores',
-              subtitle: 'Ver información de todos los doctores',
-              icon: Icons.medical_services,
-              color: Colors.purple[400]!,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ReceptionistDoctors(),
                   ),
                 );
               },
@@ -155,4 +138,3 @@ class _ReceptionistAppointmentsState extends State<ReceptionistAppointments> {
     );
   }
 }
-*/

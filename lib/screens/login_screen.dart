@@ -48,6 +48,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (mounted) {
           switch (user.role) {
+            case UserRole.administrador:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => DirectorDashboard(director: user)),
+              );
+              break;
             case UserRole.director:
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => DirectorDashboard(director: user)),

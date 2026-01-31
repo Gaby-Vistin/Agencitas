@@ -1,7 +1,8 @@
-import 'package:agencitas/services/mysql_service.dart';
 import 'package:flutter/material.dart';
 import '../../models/patient.dart';
+import '../../services/api_registro_paciente.dart';
 import '../patient_edit_screen.dart';
+import '../patient_registration_screen.dart';
 
 class ReceptionistPatients extends StatefulWidget {
   const ReceptionistPatients({Key? key}) : super(key: key);
@@ -11,7 +12,7 @@ class ReceptionistPatients extends StatefulWidget {
 }
 
 class _ReceptionistPatientsState extends State<ReceptionistPatients> {
-  final MySQLDatabaseService _dbService = MySQLDatabaseService();
+  final ApiRegistroPaciente _apiService = ApiRegistroPaciente();
   bool _isLoading = true;
   List<Patient> _patients = [];
   String _searchQuery = '';
@@ -28,10 +29,10 @@ class _ReceptionistPatientsState extends State<ReceptionistPatients> {
     });
 
     try {
-      final patients = await _dbService.getAllPatients();
+      final patientsData = await _apiService.getPatients();
       if (mounted) {
         setState(() {
-          _patients = patients;
+          _patients = patientsData.map((data) => Patient.fromJson(data)).toList();
           _isLoading = false;
         });
       }
@@ -59,7 +60,8 @@ class _ReceptionistPatientsState extends State<ReceptionistPatients> {
       final query = _searchQuery.toLowerCase();
       return fullName.contains(query) ||
           patient.identification.contains(query) ||
-          patient.phone.contains(query);
+          (patient.phoneMobile?.toLowerCase().contains(query) ?? false) ||
+          (patient.phoneConventional?.toLowerCase().contains(query) ?? false);
     }).toList();
   }
 
@@ -72,32 +74,45 @@ class _ReceptionistPatientsState extends State<ReceptionistPatients> {
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.purple[50],
-            child: TextField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Buscar paciente por nombre, cédula o teléfono...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Buscar paciente por nombre, cédula o teléfono...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                setState(() {
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                  ),
                 ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
+                const SizedBox(width: 12),
+                FloatingActionButton(
+                  onPressed: _addNewPatient,
+                  backgroundColor: Colors.purple[700],
+                  tooltip: 'Registrar Paciente',
+                  child: const Icon(Icons.person_add, color: Colors.white),
+                ),
+              ],
             ),
           ),
 
@@ -266,7 +281,7 @@ class _ReceptionistPatientsState extends State<ReceptionistPatients> {
                   Icon(Icons.phone, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 8),
                   Text(
-                    patient.phone,
+                    patient.phoneMobile ?? patient.phoneConventional ?? 'Sin teléfono',
                     style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                   ),
                   const SizedBox(width: 16),
@@ -326,9 +341,13 @@ class _ReceptionistPatientsState extends State<ReceptionistPatients> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildDetailRow('Cédula', patient.identification),
-              _buildDetailRow('Teléfono', patient.phone),
+              if (patient.phoneMobile != null)
+                _buildDetailRow('Celular', patient.phoneMobile!),
+              if (patient.phoneConventional != null)
+                _buildDetailRow('Teléfono Convencional', patient.phoneConventional!),
               _buildDetailRow('Edad', '${_calculateAge(patient.birthDate)} años'),
-              _buildDetailRow('Dirección', patient.address),
+              if (patient.address != null && patient.address!.isNotEmpty)
+                _buildDetailRow('Dirección', patient.address!),
               _buildDetailRow('Estado', patient.isActive ? 'Activo' : 'Inactivo'),
             ],
           ),
@@ -379,6 +398,19 @@ class _ReceptionistPatientsState extends State<ReceptionistPatients> {
       context,
       MaterialPageRoute(
         builder: (context) => PatientEditScreen(patient: patient),
+      ),
+    );
+
+    if (result == true) {
+      _loadPatients();
+    }
+  }
+
+  void _addNewPatient() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegisterPatientPage(),
       ),
     );
 

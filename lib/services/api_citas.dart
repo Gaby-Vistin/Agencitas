@@ -1,67 +1,74 @@
-/*import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import '../models/appointment.dart';
-import '../models/patient.dart';
-//import '../models/doctor.dart' as doctor_models;
 
-class AppointmentService {
+class AppointmentApiService {
   static const String baseUrl = 'http://localhost:3000/api/appointments';
 
   // --------------------------------
   // CREAR CITA
   // --------------------------------
   Future<ApiResult> scheduleAppointment({
-  required Patient patient,
-  required int doctorId,
-  required DateTime appointmentDate,
-  required TimeOfDay appointmentTime, // ✅ CORRECTO
-  required int stage,
-  String? notes,
-  String? referralCode,
-}) async {
-  final response = await http.post(
-    Uri.parse(baseUrl),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({
-      'patientId': patient.id,
-      'doctorId': doctorId,
-      'appointmentDate':
-          DateFormat('yyyy-MM-dd').format(appointmentDate),
-      'appointmentTime':
-          '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}',
-      'stage': stage,
-      'notes': notes,
-      'referralCode': referralCode,
-      'isFromProvince': patient.isFromProvince,
-    }),
-  );
+    required int patientId,
+    required int doctorId,
+    required DateTime appointmentDate,
+    required TimeOfDay appointmentTime,
+    required String specialty,
+    required String reason,
+    String? notes,
+    String? referralCode,
+    bool isFromProvince = false,
+    String? province,
+  }) async {
+    try {
+      final body = {
+        'patientId': patientId,
+        'doctorId': doctorId,
+        'appointmentDate': DateFormat('yyyy-MM-dd').format(appointmentDate),
+        'appointmentTime':
+            '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}',
+        'specialty': specialty,
+        'reason': reason,
+        'status': 'scheduled',
+        'stage': 1,
+        'therapyStatus': 'notStarted',
+        'notes': notes ?? '',
+        'referralCode': referralCode ?? '',
+        'isFromProvince': isFromProvince ? 1 : 0,
+        'province': province ?? '',
+      };
+      
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
 
-  final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
-  if (response.statusCode == 201) {
-    return ApiResult.success();
-  } else {
-    return ApiResult.error(
-      data['error'] ?? 'Error al crear cita',
-    );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return ApiResult.success(data['id']);
+      } else {
+        final errorMsg = data['error'] ?? data['message'] ?? 'Error al crear cita';
+        return ApiResult.error(errorMsg);
+      }
+    } catch (e) {
+      return ApiResult.error('Error de conexión: $e');
+    }
   }
-}
-
 
   // --------------------------------
   // LISTAR CITAS
   // --------------------------------
-  Future<List<Appointment>> getAppointments() async {
+  Future<List<dynamic>> getAppointments() async {
     final response = await http.get(Uri.parse(baseUrl));
 
     if (response.statusCode != 200) {
       throw Exception('Error al obtener citas');
     }
 
-    final List data = jsonDecode(response.body);
-    return data.map((e) => Appointment.fromJson(e)).toList();
+    return jsonDecode(response.body);
   }
 
   // --------------------------------
@@ -76,8 +83,8 @@ class AppointmentService {
   }
 
   // --------------------------------
-// HORARIOS DISPONIBLES
-// --------------------------------
+  // HORARIOS DISPONIBLES
+  // --------------------------------
   Future<List<TimeOfDay>> getAvailableTimeSlots(
     int doctorId,
     DateTime date,
@@ -104,16 +111,6 @@ class AppointmentService {
       );
     }).toList();
   }
-
-
-
-
-
-
-
-
-
-
 }
 
 // --------------------------------
@@ -122,12 +119,12 @@ class AppointmentService {
 class ApiResult {
   final bool isSuccess;
   final String? errorMessage;
+  final int? appointmentId;
 
-  ApiResult._({required this.isSuccess, this.errorMessage});
+  ApiResult._({required this.isSuccess, this.errorMessage, this.appointmentId});
 
-  factory ApiResult.success() => ApiResult._(isSuccess: true);
+  factory ApiResult.success(int? id) => ApiResult._(isSuccess: true, appointmentId: id);
 
   factory ApiResult.error(String message) =>
       ApiResult._(isSuccess: false, errorMessage: message);
 }
-*/

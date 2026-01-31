@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/doctor.dart';
-import '../doctor_edit_screen.dart';
+import '../../services/api_doctores.dart';
 
 class ReceptionistDoctors extends StatefulWidget {
   const ReceptionistDoctors({Key? key}) : super(key: key);
@@ -13,6 +13,7 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
   bool _isLoading = true;
   List<Doctor> _doctors = [];
   String _searchQuery = '';
+  final ApiDoctores _api = ApiDoctores();
 
   @override
   void initState() {
@@ -21,49 +22,31 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
   }
 
   Future<void> _loadDoctors() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
-    // Doctores de ejemplo (Fisioterapia)
-    setState(() {
-      _doctors = [
-        Doctor(
-          id: 1,
-          name: 'María',
-          lastName: 'González',
-          specialty: 'Fisioterapia',
-          license: 'MSP-FIS-001',
-          email: 'maria.gonzalez@cericitas.com',
-          phone: '0991234567',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+    try {
+      final response = await _api.getDoctors();
+      final doctors = response
+          .map<Doctor>((json) => Doctor.fromJson(json))
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _doctors = doctors;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cargar profesionales: $e'),
+          backgroundColor: Colors.red,
         ),
-        Doctor(
-          id: 2,
-          name: 'Carlos',
-          lastName: 'Rodríguez',
-          specialty: 'Fisioterapia',
-          license: 'MSP-FIS-002',
-          email: 'carlos.rodriguez@cericitas.com',
-          phone: '0991234568',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-        Doctor(
-          id: 3,
-          name: 'Ana',
-          lastName: 'Martínez',
-          specialty: 'Fisioterapia',
-          license: 'MSP-FIS-003',
-          email: 'ana.martinez@cericitas.com',
-          phone: '0991234569',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-      ];
-      _isLoading = false;
-    });
+      );
+    }
   }
 
   List<Doctor> get _filteredDoctors {
@@ -71,11 +54,12 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
       return _doctors;
     }
     return _doctors.where((doctor) {
-      final fullName = '${doctor.name} ${doctor.lastName}'.toLowerCase();
+      final fullName = doctor.fullName.toLowerCase();
       final query = _searchQuery.toLowerCase();
       return fullName.contains(query) ||
+          doctor.specialty.toLowerCase().contains(query) ||
           doctor.email.toLowerCase().contains(query) ||
-          doctor.phone.contains(query);
+          doctor.license.contains(query);
     }).toList();
   }
 
@@ -84,63 +68,77 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
     return Scaffold(
       body: Column(
         children: [
-          // Barra de búsqueda
+          // Encabezado informativo
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.purple[50],
-            child: TextField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Buscar médico por nombre, email o teléfono...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-            ),
-          ),
-
-          // Estadísticas
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    _buildStatItem(
-                      'Total Médicos',
-                      _doctors.length.toString(),
-                      Icons.medical_services,
-                      Colors.purple[700]!,
-                    ),
-                    _buildStatItem(
-                      'Fisioterapia',
-                      _doctors.length.toString(),
-                      Icons.healing,
-                      Colors.green[700]!,
+                    Icon(Icons.info_outline, color: Colors.purple[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Consulta de Profesionales',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple[700],
+                        ),
+                      ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  'Para agendar citas, use el botón "Agendar Cita" en la pantalla principal.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Buscar profesional por nombre, área o cédula...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Contador simple
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              '${_filteredDoctors.length} profesional(es) encontrado(s)',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -184,29 +182,6 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildStatItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Column(
-      children: [
-        Icon(icon, size: 32, color: color),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-      ],
     );
   }
 
@@ -270,14 +245,21 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.edit, color: Colors.purple[700]),
-                    onPressed: () => _editDoctor(doctor),
-                    tooltip: 'Editar médico',
-                  ),
+                  // SOLO VISUALIZACIÓN - Sin botón de editar
                 ],
               ),
               const Divider(height: 24),
+              Row(
+                children: [
+                  Icon(Icons.badge, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Cédula: ${doctor.license}',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Icon(Icons.email, size: 16, color: Colors.grey[600]),
@@ -290,17 +272,19 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.phone, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Text(
-                    doctor.phone,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                  ),
-                ],
-              ),
+              if (doctor.phone != null && doctor.phone!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Text(
+                      doctor.phone!,
+                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -312,30 +296,23 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Dr. ${doctor.name} ${doctor.lastName}'),
+        title: Text(doctor.fullName),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow('Especialidad', doctor.specialty),
+            _buildDetailRow('Área', doctor.specialty),
+            _buildDetailRow('Cédula', doctor.license),
             _buildDetailRow('Email', doctor.email),
-            _buildDetailRow('Teléfono', doctor.phone),
+            if (doctor.phone != null && doctor.phone!.isNotEmpty)
+              _buildDetailRow('Teléfono', doctor.phone!),
+            _buildDetailRow('Estado', doctor.isActive ? 'Activo' : 'Inactivo'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cerrar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _editDoctor(doctor);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple[700],
-            ),
-            child: const Text('Editar'),
           ),
         ],
       ),
@@ -359,16 +336,5 @@ class _ReceptionistDoctorsState extends State<ReceptionistDoctors> {
         ],
       ),
     );
-  }
-
-  void _editDoctor(Doctor doctor) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => DoctorEditScreen(doctor: doctor)),
-    );
-
-    if (result == true) {
-      _loadDoctors();
-    }
   }
 }

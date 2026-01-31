@@ -1,6 +1,8 @@
-import 'package:agencitas/services/mysql_service.dart';
+import 'package:agencitas/services/api_doctores.dart';
 import 'package:flutter/material.dart';
+import 'package:email_validator/email_validator.dart';
 import '../models/doctor.dart';
+import '../models/user.dart';
 
 class DoctorEditScreen extends StatefulWidget {
   final Doctor doctor;
@@ -18,25 +20,42 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _lastNameController = TextEditingController();
+  final _specialtyController = TextEditingController();
+  final _licenseController = TextEditingController();
   final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
   bool _isLoading = false;
-
+  final ApiDoctores _api = ApiDoctores();  
   @override
   void initState() {
     super.initState();
+    
+    // Verificar permisos de director
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!SessionManager.isAdminOrDirector()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No tiene permisos para editar profesionales'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    });
+    
     _nameController.text = widget.doctor.name;
     _lastNameController.text = widget.doctor.lastName;
+    _specialtyController.text = widget.doctor.specialty;
+    _licenseController.text = widget.doctor.license;
     _emailController.text = widget.doctor.email;
-    _phoneController.text = widget.doctor.phone;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _lastNameController.dispose();
+    _specialtyController.dispose();
+    _licenseController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
@@ -45,47 +64,29 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final updatedDoctor = Doctor(
-        id: widget.doctor.id,
-        name: _nameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim(),
-        specialty: widget.doctor.specialty,
-        license: widget.doctor.license,
-        appointmentDuration: widget.doctor.appointmentDuration,
-        isActive: widget.doctor.isActive,
-        schedule: widget.doctor.schedule,
-        createdAt: widget.doctor.createdAt,
-        updatedAt: DateTime.now(),
-      );
+      final doctorData = {
+        'name': _nameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'specialty': _specialtyController.text.trim(),
+        'license': _licenseController.text.trim(),
+        'email': _emailController.text.trim(),
+      };
 
-      // Actualizar en la base de datos
-      await MySQLDatabaseService().updateDoctor(updatedDoctor);
-
-      setState(() {
-        _isLoading = false;
-      });
+      await _api.updateDoctor(widget.doctor.id!, doctorData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Información del doctor actualizada correctamente'),
+            content: Text('Profesional actualizado exitosamente'),
             backgroundColor: Colors.green,
           ),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -93,6 +94,10 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -188,8 +193,9 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
                     // Nombre
                     TextFormField(
                       controller: _nameController,
+                      textCapitalization: TextCapitalization.words,
                       decoration: InputDecoration(
-                        labelText: 'Nombre',
+                        labelText: 'Nombre *',
                         prefixIcon: const Icon(Icons.person),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -199,10 +205,7 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Por favor ingrese el nombre';
-                        }
-                        if (value.trim().length < 2) {
-                          return 'El nombre debe tener al menos 2 caracteres';
+                          return 'El nombre es obligatorio';
                         }
                         return null;
                       },
@@ -212,8 +215,9 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
                     // Apellido
                     TextFormField(
                       controller: _lastNameController,
+                      textCapitalization: TextCapitalization.words,
                       decoration: InputDecoration(
-                        labelText: 'Apellido',
+                        labelText: 'Apellido *',
                         prefixIcon: const Icon(Icons.person_outline),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -223,23 +227,58 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Por favor ingrese el apellido';
-                        }
-                        if (value.trim().length < 2) {
-                          return 'El apellido debe tener al menos 2 caracteres';
+                          return 'El apellido es obligatorio';
                         }
                         return null;
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
 
-                    const Text(
-                      'Información de Contacto',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                    // Área/Especialidad
+                    TextFormField(
+                      controller: _specialtyController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        labelText: 'Área *',
+                        hintText: 'Ej: TERAPIA FÍSICA ADULTOS',
+                        prefixIcon: const Icon(Icons.medical_services),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
                       ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'El área es obligatoria';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Cédula
+                    TextFormField(
+                      controller: _licenseController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Cédula *',
+                        prefixIcon: const Icon(Icons.badge),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'La cédula es obligatoria';
+                        }
+                        if (value.trim().length != 10) {
+                          return 'La cédula debe tener 10 dígitos';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -248,7 +287,7 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
-                        labelText: 'Correo Electrónico',
+                        labelText: 'Correo Electrónico *',
                         prefixIcon: const Icon(Icons.email),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -258,136 +297,31 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Por favor ingrese el correo electrónico';
+                          return 'El correo es obligatorio';
                         }
-                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                        if (!emailRegex.hasMatch(value.trim())) {
-                          return 'Por favor ingrese un correo electrónico válido';
+                        if (!EmailValidator.validate(value.trim())) {
+                          return 'Ingrese un correo válido';
                         }
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 32),
 
-                    // Teléfono
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Teléfono',
-                        prefixIcon: const Icon(Icons.phone),
-                        border: OutlineInputBorder(
+                    // Botón Guardar
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _saveChanges,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        filled: true,
-                        fillColor: Colors.grey[50],
-                        helperText: 'Convencional (7-9 dígitos) o Celular (10 dígitos)',
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Por favor ingrese el teléfono';
-                        }
-                        final phoneDigits = value.replaceAll(RegExp(r'[^0-9]'), '');
-                        if (phoneDigits.length < 7 || phoneDigits.length > 10) {
-                          return 'El teléfono debe tener entre 7 y 10 dígitos';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Información no editable
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue[200]!),
+                      child: const Text(
+                        'Guardar Cambios',
+                        style: TextStyle(fontSize: 16),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.info_outline, color: Colors.blue[700]),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Información Adicional',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          _buildInfoRow('Especialidad', widget.doctor.specialty),
-                          _buildInfoRow('Licencia', widget.doctor.license),
-                          _buildInfoRow(
-                            'Duración de citas',
-                            '${widget.doctor.appointmentDuration} minutos',
-                          ),
-                          _buildInfoRow(
-                            'Estado',
-                            widget.doctor.isActive ? 'Activo' : 'Inactivo',
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Nota: Para modificar especialidad, licencia o duración de citas, contacte al administrador del sistema.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Botones de acción
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('Cancelar'),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _saveChanges,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  )
-                                : const Text(
-                                    'Guardar Cambios',
-                                    style: TextStyle(fontSize: 16),
-                                  ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -395,36 +329,5 @@ class _DoctorEditScreenState extends State<DoctorEditScreen> {
             ),
     );
   }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
 }
+

@@ -17,8 +17,8 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               // Logo del Ministerio de Salud Pública
               Container(
-                width: 150,
-                height: 150,
+                width: 220,
+                height: 220,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
@@ -29,101 +29,16 @@ class WelcomeScreen extends StatelessWidget {
                       offset: const Offset(0, 5),
                     ),
                   ],
-                  border: Border.all(
-                    color: Colors.grey.withOpacity(0.2),
-                    width: 1,
-                  ),
                 ),
                 child: ClipOval(
-                  child: Container(
-                    width: 150,
-                    height: 150,
-                    color: Colors.white,
-                    child: Center(
-                      child: Container(
-                        width: 140,
-                        height: 60,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Letra "m" con fondo amarillo
-                            Container(
-                              width: 22,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Color(0xFFFFD700), // Amarillo
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'm',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            // Letra "s" con fondo azul
-                            Container(
-                              width: 22,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Color(0xFF0066CC), // Azul
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  's',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            // Letra "p" con fondo rojo
-                            Container(
-                              width: 22,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Color(0xFFE31E24), // Rojo
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'p',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Image.asset(
+                      'assets/images/msp_logo.jpg',
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 15),
-
-              // Texto oficial del ministerio
-              Text(
-                'MINISTERIO DE SALUD PÚBLICA',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
-                  letterSpacing: 0.5,
-                ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 25),
 

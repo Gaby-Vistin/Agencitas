@@ -19,7 +19,7 @@ import 'package:agencitas/services/appointment_service.dart';
 // Importacion de pantallas
 import 'patient_registration_screen.dart'; // Pantalla de Registro de Pacientes
 import 'patient_list_screen.dart'; // Pantalla de Lista de Pacientes
-import 'doctor_list_screen.dart'; // Pantalla de Lista de Doctores
+import 'doctor_list_screen.dart'; // Pantalla de Lista de Profesionales
 import 'appointment_scheduling_screen.dart'; // Pantalla de Agendar Cita
 import 'appointment_list_screen.dart'; // Pantalla de Lista de Citas
 
@@ -305,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
 
                         _buildDashboardCard(
-                          title: 'Doctores',
+                          title: 'Profesionales',
                           value: _doctorCount.toString(),
                           icon: Icons.medical_services,
                           color: Colors.purple,
@@ -401,8 +401,8 @@ class _HomeScreenState extends State<HomeScreen> {
               // Tarjeta ver lista de doctores
               const SizedBox(height: 12),
               _buildActionButton(
-                title: 'Lista de Doctores',
-                subtitle: 'Ver información de todos los doctores',
+                title: 'Lista de Profesionales',
+                subtitle: 'Ver información de todos los profesionales',
                 icon: Icons.medical_services,
                 color: Colors.purple,
                 onPressed: () {

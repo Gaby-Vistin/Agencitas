@@ -30,10 +30,10 @@ class MySQLDatabaseService {
    
 
   // Conexion mediante la API REST para web
-  static const _host = 'localhost'; // o 'localhost'
-  static const _port = 3308;
+  static const _host = '127.0.0.1'; // o 'localhost'
+  static const _port = 3306;
   static const _user = 'root';
-  static const _password = 'root'; // Pon aquí tu contraseña real!
+  static const _password = 'Pichincha12*'; // Pon aquí tu contraseña real!
   static const _db = 'citas_medicas'; // Nombre de la base de datos
   static const _secure = false; //
 
@@ -119,7 +119,8 @@ class MySQLDatabaseService {
           lastName VARCHAR(255) NOT NULL,
           identification VARCHAR(50) UNIQUE NOT NULL,
           email VARCHAR(255),
-          phone VARCHAR(50),
+          phoneConventional VARCHAR(50),
+          phoneMobile VARCHAR(50),
           birthDate DATE,
           address TEXT,
           referralCode VARCHAR(50),
@@ -128,7 +129,9 @@ class MySQLDatabaseService {
           currentStage INT DEFAULT 0,
           isActive BOOLEAN DEFAULT TRUE,
           createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updatedAt DATETIME ON UPDATE CURRENT_TIMESTAMP
+          updatedAt DATETIME ON UPDATE CURRENT_TIMESTAMP,
+          acceptedAt DATETIME,
+          insuranceType INT DEFAULT 0
         )
       ''');
 
@@ -612,18 +615,19 @@ Future<User?> login(String username, String password) async {
   Future<int> insertPatient(Patient patient) async {
     final conn = await connection;
     var result = await conn.execute('''
-      INSERT INTO patients (name, lastName, identification, email, phone, birthDate, 
+      INSERT INTO patients (name, lastName, identification, email, phoneConventional, phoneMobile, birthDate, 
                            address, referralCode, isFromProvince, missedAppointments, 
-                           currentStage, isActive, createdAt)
-      VALUES (:name, :lastName, :identification, :email, :phone, :birthDate, 
+                           currentStage, isActive, createdAt, acceptedAt, insuranceType)
+      VALUES (:name, :lastName, :identification, :email, :phoneConventional, :phoneMobile, :birthDate, 
               :address, :referralCode, :isFromProvince, :missedAppointments, 
-              :currentStage, :isActive, :createdAt)
+              :currentStage, :isActive, :createdAt, :acceptedAt, :insuranceType)
     ''', {
       'name': patient.name,
       'lastName': patient.lastName,
       'identification': patient.identification,
       'email': patient.email,
-      'phone': patient.phone,
+      'phoneConventional': patient.phoneConventional,
+      'phoneMobile': patient.phoneMobile,
       'birthDate': patient.birthDate.toIso8601String().split('T')[0],
       'address': patient.address,
       'referralCode': patient.referralCode,
@@ -632,6 +636,8 @@ Future<User?> login(String username, String password) async {
       'currentStage': patient.currentStage.index,
       'isActive': patient.isActive ? 1 : 0,
       'createdAt': patient.createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+      'acceptedAt': patient.acceptedAt?.toIso8601String(),
+      'insuranceType': patient.insuranceType.index,
     });
     return result.lastInsertID.toInt();
   }
@@ -671,17 +677,18 @@ Future<User?> login(String username, String password) async {
     await conn.execute('''
       UPDATE patients SET 
         name = :name, lastName = :lastName, identification = :identification, 
-        email = :email, phone = :phone, birthDate = :birthDate, 
+        email = :email, phoneConventional = :phoneConventional, phoneMobile = :phoneMobile, birthDate = :birthDate, 
         address = :address, referralCode = :referralCode, 
         isFromProvince = :isFromProvince, missedAppointments = :missedAppointments, 
-        currentStage = :currentStage, isActive = :isActive, updatedAt = NOW()
+        currentStage = :currentStage, isActive = :isActive, insuranceType = :insuranceType, updatedAt = NOW()
       WHERE id = :id
     ''', {
       'name': patient.name,
       'lastName': patient.lastName,
       'identification': patient.identification,
       'email': patient.email,
-      'phone': patient.phone,
+      'phoneConventional': patient.phoneConventional,
+      'phoneMobile': patient.phoneMobile,
       'birthDate': patient.birthDate.toIso8601String().split('T')[0],
       'address': patient.address,
       'referralCode': patient.referralCode,
@@ -689,6 +696,7 @@ Future<User?> login(String username, String password) async {
       'missedAppointments': patient.missedAppointments,
       'currentStage': patient.currentStage.index,
       'isActive': patient.isActive ? 1 : 0,
+      'insuranceType': patient.insuranceType.index,
       'id': patient.id,
     });
   }
@@ -708,10 +716,11 @@ Future<User?> login(String username, String password) async {
       name: data['name'] ?? '',
       lastName: data['lastName'] ?? '',
       identification: data['identification'] ?? '',
-      email: data['email'] ?? '',
-      phone: data['phone'] ?? '',
+      email: data['email'],
+      phoneConventional: data['phoneConventional'],
+      phoneMobile: data['phoneMobile'],
       birthDate: _parseDateTime(data['birthDate']),
-      address: data['address'] ?? '',
+      address: data['address'],
       referralCode: data['referralCode'],
       isFromProvince: _parseBool(data['isFromProvince']),
       missedAppointments: _parseInt(data['missedAppointments']),
@@ -719,6 +728,8 @@ Future<User?> login(String username, String password) async {
       isActive: _parseBool(data['isActive']),
       createdAt: _parseDateTime(data['createdAt']),
       updatedAt: _parseNullableDateTime(data['updatedAt']),
+      acceptedAt: _parseNullableDateTime(data['acceptedAt']),
+      insuranceType: InsuranceType.values[_parseInt(data['insuranceType'])],
     );
   }
 
@@ -974,10 +985,7 @@ Future<User?> login(String username, String password) async {
         name: data['patient_name']!,
         lastName: data['patient_lastName']!,
         identification: '', 
-        email: '',
-        phone: '',
         birthDate: DateTime.now(),
-        address: '',
         isFromProvince: false,
         createdAt: DateTime.now(),
       );

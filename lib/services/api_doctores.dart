@@ -47,20 +47,33 @@ class ApiDoctores {
     }
     throw Exception("Error obteniendo doctores");
   }
+
+  /// Crear nuevo doctor
+  Future<void> createDoctor(Map<String, dynamic> data) async {
+    final url = Uri.parse(baseUrl);
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception('Error al crear profesional');
+    }
+  }
   
   /// Actualizar doctor
   Future<void> updateDoctor(int id, Map<String, dynamic> data) async {
-      final url = Uri.parse("$baseUrl/$id");
+    final url = Uri.parse("$baseUrl/$id");
+    final response = await http.put(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(data),
+    );
 
-      final response = await http.put(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(data),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('Error al actualizar paciente');
-      }
+    if (response.statusCode != 200) {
+      throw Exception('Error al actualizar profesional');
+    }
   }
 
   /// Eliminar doctor

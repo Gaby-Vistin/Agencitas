@@ -58,7 +58,7 @@ class _DirectorPatientsState extends State<DirectorPatients> {
       filtered = filtered.where((patient) {
         return patient.fullName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                patient.identification.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               patient.email.toLowerCase().contains(_searchQuery.toLowerCase());
+               (patient.email?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
       }).toList();
     }
 
@@ -70,6 +70,9 @@ class _DirectorPatientsState extends State<DirectorPatients> {
           break;
         case 'inactive':
           filtered = filtered.where((patient) => !patient.isActive).toList();
+          break;
+        case 'priority':
+          filtered = filtered.where((patient) => patient.isPriority).toList();
           break;
         case 'province':
           filtered = filtered.where((patient) => patient.isFromProvince).toList();
@@ -134,6 +137,16 @@ class _DirectorPatientsState extends State<DirectorPatients> {
                           DropdownMenuItem(value: 'all', child: Text('Todos')),
                           DropdownMenuItem(value: 'active', child: Text('Activos')),
                           DropdownMenuItem(value: 'inactive', child: Text('Inactivos')),
+                          DropdownMenuItem(
+                            value: 'priority', 
+                            child: Row(
+                              children: [
+                                Icon(Icons.star, size: 16, color: Colors.red),
+                                SizedBox(width: 4),
+                                Text('Prioritarios'),
+                              ],
+                            ),
+                          ),
                           DropdownMenuItem(value: 'province', child: Text('De Provincia')),
                           DropdownMenuItem(value: 'local', child: Text('Locales')),
                         ],
@@ -305,6 +318,32 @@ class _DirectorPatientsState extends State<DirectorPatients> {
                         ),
                       ),
                     ),
+                    if (patient.isPriority) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.withOpacity(0.4)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.star, size: 12, color: Colors.red[700]),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Prioritario',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.red[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (patient.isFromProvince) ...[
                       const SizedBox(height: 4),
                       Container(
@@ -341,7 +380,7 @@ class _DirectorPatientsState extends State<DirectorPatients> {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          patient.email,
+                          patient.email ?? 'Sin email',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -359,7 +398,7 @@ class _DirectorPatientsState extends State<DirectorPatients> {
                       Icon(Icons.phone, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Text(
-                        patient.phone,
+                        patient.phoneMobile ?? patient.phoneConventional ?? 'Sin teléfono',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -578,6 +617,17 @@ class _DirectorPatientsState extends State<DirectorPatients> {
     }
   }
 
+  String _getInsuranceTypeText(InsuranceType type) {
+    switch (type) {
+      case InsuranceType.none:
+        return 'Sin seguro';
+      case InsuranceType.public:
+        return 'Público';
+      case InsuranceType.private:
+        return 'Privado';
+    }
+  }
+
   void _showAddPatientDialog() {
     showDialog(
       context: context,
@@ -624,19 +674,27 @@ class _DirectorPatientsState extends State<DirectorPatients> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildInfoItem('Identificación', patient.identification),
-                _buildInfoItem('Email', patient.email),
-                _buildInfoItem('Teléfono', patient.phone),
-                _buildInfoItem('Dirección', patient.address),
+                _buildInfoItem('Email', patient.email ?? 'Sin email'),
+                if (patient.phoneMobile != null)
+                  _buildInfoItem('Celular', patient.phoneMobile!),
+                if (patient.phoneConventional != null)
+                  _buildInfoItem('Teléfono Convencional', patient.phoneConventional!),
+                if (patient.address != null && patient.address!.isNotEmpty)
+                  _buildInfoItem('Dirección', patient.address!),
                 _buildInfoItem('Fecha de Nacimiento', 
                   '${patient.birthDate.day}/${patient.birthDate.month}/${patient.birthDate.year}'),
                 if (patient.referralCode?.isNotEmpty == true)
                   _buildInfoItem('Código de Remisión', patient.referralCode!),
                 _buildInfoItem('Es de Provincia', patient.isFromProvince ? 'Sí' : 'No'),
+                _buildInfoItem('Tipo de Seguro', _getInsuranceTypeText(patient.insuranceType)),
                 _buildInfoItem('Etapa Actual', _getStageText(patient.currentStage)),
                 _buildInfoItem('Citas Perdidas', patient.missedAppointments.toString()),
                 _buildInfoItem('Estado', patient.isActive ? 'Activo' : 'Inactivo'),
                 _buildInfoItem('Fecha de Registro', 
                   '${patient.createdAt?.day}/${patient.createdAt?.month}/${patient.createdAt?.year}'),
+                if (patient.acceptedAt != null)
+                  _buildInfoItem('Fecha de Aceptación', 
+                    '${patient.acceptedAt!.day}/${patient.acceptedAt!.month}/${patient.acceptedAt!.year} ${patient.acceptedAt!.hour}:${patient.acceptedAt!.minute.toString().padLeft(2, '0')}'),
               ],
             ),
           ),

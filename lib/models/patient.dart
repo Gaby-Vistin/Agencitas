@@ -1,12 +1,39 @@
+// ----------------------------------
+// ENUM DE TIPO DE SEGURO
+// ----------------------------------
+enum InsuranceType {
+  none,     // Sin seguro
+  public,   // Seguro público
+  private,  // Seguro privado
+}
+
+// ----------------------------------
+// ENUM DE GÉNERO
+// ----------------------------------
+enum Gender {
+  male,     // Hombre
+  female,   // Mujer
+  other,    // Otro
+}
+
+// ----------------------------------
+// ENUM DE TIPO DE PACIENTE (para filtrar especialidades)
+// ----------------------------------
+enum PatientType {
+  child,    // Niño (< 18 años)
+  adult,    // Adulto (>= 18 años)
+}
+
 class Patient {
   final int? id;
   final String name;
   final String lastName;
   final String identification;
-  final String email;
-  final String phone;
+  final String? email;
+  final String? phoneConventional;
+  final String? phoneMobile;
   final DateTime birthDate;
-  final String address;
+  final String? address;
   final String? referralCode;
   final bool isFromProvince;
   final int missedAppointments;
@@ -14,23 +41,32 @@ class Patient {
   final bool isActive;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final DateTime? acceptedAt;
+  final InsuranceType insuranceType;
+  final Gender gender;
+  final bool isPriority;
 
   Patient({
     this.id,
     required this.name,
     required this.lastName,
     required this.identification,
-    required this.email,
-    required this.phone,
+    this.email,
+    this.phoneConventional,
+    this.phoneMobile,
     required this.birthDate,
-    required this.address,
+    this.address,
     this.referralCode,
-    required this.isFromProvince,
+    this.isFromProvince = false,
     this.missedAppointments = 0,
     this.currentStage = AppointmentStage.first,
     this.isActive = true,
     this.createdAt,
     this.updatedAt,
+    this.acceptedAt,
+    this.insuranceType = InsuranceType.none,
+    this.gender = Gender.other,
+    this.isPriority = false,
   });
 
   // ----------------------------------
@@ -43,7 +79,8 @@ class Patient {
       "lastName": lastName,
       "identification": identification,
       "email": email,
-      "phone": phone,
+      "phoneConventional": phoneConventional,
+      "phoneMobile": phoneMobile,
       "birthDate": birthDate.toIso8601String(),
       "address": address,
       "referralCode": referralCode,
@@ -53,6 +90,10 @@ class Patient {
       "isActive": isActive,
       "createdAt": createdAt?.toIso8601String(),
       "updatedAt": updatedAt?.toIso8601String(),
+      "acceptedAt": acceptedAt?.toIso8601String(),
+      "insuranceType": insuranceType.index,
+      "gender": gender.index,
+      "isPriority": isPriority ? 1 : 0,
     };
   }
 
@@ -66,7 +107,8 @@ class Patient {
       lastName: map["lastName"],
       identification: map["identification"],
       email: map["email"],
-      phone: map["phone"],
+      phoneConventional: map["phoneConventional"],
+      phoneMobile: map["phoneMobile"],
       birthDate: DateTime.parse(map["birthDate"]),
       address: map["address"],
       referralCode: map["referralCode"],
@@ -82,6 +124,13 @@ class Patient {
           map["createdAt"] != null ? DateTime.parse(map["createdAt"]) : null,
       updatedAt:
           map["updatedAt"] != null ? DateTime.parse(map["updatedAt"]) : null,
+      acceptedAt:
+          map["acceptedAt"] != null ? DateTime.parse(map["acceptedAt"]) : null,
+      insuranceType: InsuranceType.values[map["insuranceType"] ?? 0],
+      gender: Gender.values[map["gender"] ?? 2],
+      isPriority: map["isPriority"] is int
+          ? map["isPriority"] == 1
+          : map["isPriority"] ?? false,
     );
   }
 
@@ -95,7 +144,8 @@ class Patient {
       "lastName": lastName,
       "identification": identification,
       "email": email,
-      "phone": phone,
+      "phoneConventional": phoneConventional,
+      "phoneMobile": phoneMobile,
       "birthDate": birthDate.toIso8601String().split('T').first,
       "address": address,
       "referralCode": referralCode,
@@ -126,7 +176,8 @@ class Patient {
     String? lastName,
     String? identification,
     String? email,
-    String? phone,
+    String? phoneConventional,
+    String? phoneMobile,
     DateTime? birthDate,
     String? address,
     String? referralCode,
@@ -136,6 +187,10 @@ class Patient {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? acceptedAt,
+    InsuranceType? insuranceType,
+    Gender? gender,
+    bool? isPriority,
   }) {
     return Patient(
       id: id ?? this.id,
@@ -143,7 +198,8 @@ class Patient {
       lastName: lastName ?? this.lastName,
       identification: identification ?? this.identification,
       email: email ?? this.email,
-      phone: phone ?? this.phone,
+      phoneConventional: phoneConventional ?? this.phoneConventional,
+      phoneMobile: phoneMobile ?? this.phoneMobile,
       birthDate: birthDate ?? this.birthDate,
       address: address ?? this.address,
       referralCode: referralCode ?? this.referralCode,
@@ -153,6 +209,10 @@ class Patient {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      acceptedAt: acceptedAt ?? this.acceptedAt,
+      insuranceType: insuranceType ?? this.insuranceType,
+      gender: gender ?? this.gender,
+      isPriority: isPriority ?? this.isPriority,
     );
   }
 
@@ -160,6 +220,20 @@ class Patient {
   // GETTERS
   // ----------------------------------
   String get fullName => "$name $lastName";
+
+  // Calcula la edad del paciente
+  int get age {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  // Determina si es niño (menor de 18 años)
+  bool get isChild => age < 18;
 
   bool get canScheduleAppointment => isActive && missedAppointments < 2;
 

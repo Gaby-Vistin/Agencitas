@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/appointment.dart';
+import '../../models/doctor.dart' as doctor_models hide TimeOfDay;
+import '../../models/user.dart';
+import '../../services/api_doctores.dart';
+import '../../services/api_citas.dart';
 
 // Modelo simplificado para las citas del paciente
 class PatientAppointment {
@@ -914,91 +918,73 @@ class AppointmentBookingScreen extends StatefulWidget {
 
 class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   final _formKey = GlobalKey<FormState>();
+  final ApiDoctores _apiDoctores = ApiDoctores();
+  final AppointmentApiService _appointmentApi = AppointmentApiService();
   String? _selectedSpecialty;
   DateTime? _selectedDate;
   String? _selectedTime;
+  String _reason = '';
   bool _isLoading = false;
-  bool _isFromProvince = false;
-  String? _selectedProvince;
-  String? _referralCode;
+  bool _isLoadingDoctors = true;
   
-  List<String> _specialties = [
-    'Fisioterapia',
-  ];
+  List<String> _specialties = [];
+  List<doctor_models.Doctor> _allDoctors = [];
+  Map<String, List<DoctorInfo>> _doctorsBySpecialty = {};
   
-  Map<String, List<DoctorInfo>> _doctorsBySpecialty = {
-    'Fisioterapia': [
-      DoctorInfo('Dr. Luis Hernández', 'doctor1'),
-      DoctorInfo('Dra. María Rodríguez', 'doctor2'),
-      DoctorInfo('Dr. Carlos Mendoza', 'doctor3'),
-    ],
-  };
+  @override
+  void initState() {
+    super.initState();
+    _loadDoctorsAndSpecialties();
+  }
+
+  Future<void> _loadDoctorsAndSpecialties() async {
+    setState(() {
+      _isLoadingDoctors = true;
+    });
+
+    try {
+      final doctorsData = await _apiDoctores.getDoctors();
+      _allDoctors = doctorsData.map((data) => doctor_models.Doctor.fromJson(data)).toList();
+      
+      // Filtrar solo doctores activos
+      final activeDoctors = _allDoctors.where((d) => d.isActive).toList();
+      
+      // Extraer especialidades únicas
+      final specialtiesSet = activeDoctors.map((d) => d.specialty).toSet();
+      _specialties = specialtiesSet.toList()..sort();
+      
+      // Agrupar doctores por especialidad
+      _doctorsBySpecialty.clear();
+      for (var specialty in _specialties) {
+        final doctorsInSpecialty = activeDoctors
+            .where((d) => d.specialty == specialty)
+            .map((d) => DoctorInfo('${d.name} ${d.lastName}', d.id.toString()))
+            .toList();
+        _doctorsBySpecialty[specialty] = doctorsInSpecialty;
+      }
+      
+      setState(() {
+        _isLoadingDoctors = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingDoctors = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar especialidades: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
   
   List<String> _availableTimes = [
     '08:00', '09:00', '10:00', '11:00',
     '14:00', '15:00', '16:00', '17:00',
   ];
-  
-  List<String> _ecuadorianProvinces = [
-    'Azuay',
-    'Bolívar',
-    'Cañar',
-    'Carchi',
-    'Cotopaxi',
-    'Chimborazo',
-    'El Oro',
-    'Esmeraldas',
-    'Guayas',
-    'Imbabura',
-    'Loja',
-    'Los Ríos',
-    'Manabí',
-    'Morona Santiago',
-    'Napo',
-    'Pastaza',
-    'Pichincha',
-    'Tungurahua',
-    'Zamora Chinchipe',
-    'Galápagos',
-    'Sucumbíos',
-    'Orellana',
-    'Santo Domingo de los Tsáchilas',
-    'Santa Elena',
-  ];
-
-  String? _getProvinceCode(String? province) {
-    if (province == null) return null;
-    
-    // Usar los mismos códigos numéricos que ya tiene el sistema
-    Map<String, String> provinceCodes = {
-      'Azuay': '01',
-      'Bolívar': '02',
-      'Cañar': '03',
-      'Carchi': '04',
-      'Cotopaxi': '05',
-      'Chimborazo': '06',
-      'El Oro': '07',
-      'Esmeraldas': '08',
-      'Guayas': '09',
-      'Imbabura': '10',
-      'Loja': '11',
-      'Los Ríos': '12',
-      'Manabí': '13',
-      'Morona Santiago': '14',
-      'Napo': '15',
-      'Pastaza': '16',
-      'Pichincha': '17',
-      'Tungurahua': '18',
-      'Zamora Chinchipe': '19',
-      'Galápagos': '20',
-      'Sucumbíos': '21',
-      'Orellana': '22',
-      'Santo Domingo de los Tsáchilas': '24',
-      'Santa Elena': '26',
-    };
-    
-    return provinceCodes[province];
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1039,7 +1025,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'El sistema asignará automáticamente el médico fisioterapeuta disponible según la especialidad y fecha seleccionada. No es necesario seleccionar un médico específico.',
+                    'El sistema asignará automáticamente un profesional disponible según la especialidad y fecha seleccionada. Las especialidades mostradas corresponden a los profesionales actualmente registrados en el centro.',
                     style: TextStyle(fontSize: 14),
                   ),
                 ],
@@ -1048,32 +1034,60 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             const SizedBox(height: 24),
             
             // Especialidad
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Especialidad',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.medical_services),
-              ),
-              value: _selectedSpecialty,
-              items: _specialties.map((specialty) {
-                return DropdownMenuItem(
-                  value: specialty,
-                  child: Text(specialty),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedSpecialty = value;
-                  // Reset doctor selection cuando cambia la especialidad
-                });
-              },
-              validator: (value) {
-                if (value == null) {
-                  return 'Por favor seleccione una especialidad';
-                }
-                return null;
-              },
-            ),
+            _isLoadingDoctors
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                : _specialties.isEmpty
+                    ? Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.orange[700]),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                'No hay profesionales disponibles en este momento',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'Especialidad',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.medical_services),
+                        ),
+                        value: _selectedSpecialty,
+                        items: _specialties.map((specialty) {
+                          return DropdownMenuItem(
+                            value: specialty,
+                            child: Text(specialty),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedSpecialty = value;
+                            // Reset doctor selection cuando cambia la especialidad
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Por favor seleccione una especialidad';
+                          }
+                          return null;
+                        },
+                      ),
             const SizedBox(height: 16),
             
             // Fecha
@@ -1116,95 +1130,6 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             ),
             const SizedBox(height: 16),
             
-            // Información de origen del paciente
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Información de Origen',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    CheckboxListTile(
-                      title: const Text('Soy paciente de provincia'),
-                      subtitle: const Text('Requiere código de referencia específico'),
-                      value: _isFromProvince,
-                      onChanged: (value) {
-                        setState(() {
-                          _isFromProvince = value ?? false;
-                          if (!_isFromProvince) {
-                            _selectedProvince = null;
-                            _referralCode = null;
-                          }
-                        });
-                      },
-                      controlAffinity: ListTileControlAffinity.leading,
-                    ),
-                    if (_isFromProvince) ...[
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'Provincia de origen',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.map),
-                        ),
-                        value: _selectedProvince,
-                        items: _ecuadorianProvinces.map((province) {
-                          return DropdownMenuItem(
-                            value: province,
-                            child: Text(province),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedProvince = value;
-                            // Generar código de referencia basado en la provincia
-                            _referralCode = _getProvinceCode(value);
-                          });
-                        },
-                        validator: (value) {
-                          if (_isFromProvince && value == null) {
-                            return 'Debe seleccionar su provincia de origen';
-                          }
-                          return null;
-                        },
-                      ),
-                      if (_referralCode != null) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.orange[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.orange[200]!),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.info, color: Colors.orange[600]),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Código de referencia generado: $_referralCode',
-                                  style: TextStyle(
-                                    color: Colors.orange[700],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
             // Motivo
             TextFormField(
               decoration: const InputDecoration(
@@ -1214,7 +1139,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
               ),
               maxLines: 3,
               onChanged: (value) {
-                // Guardar el motivo localmente si es necesario
+                _reason = value;
               },
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -1306,7 +1231,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     if (_selectedSpecialty == null) return 'Seleccione una especialidad';
     
     final doctors = _doctorsBySpecialty[_selectedSpecialty!] ?? [];
-    if (doctors.isEmpty) return 'No hay doctores disponibles';
+    if (doctors.isEmpty) return 'No hay profesionales disponibles';
     
     // ASIGNACIÓN AUTOMÁTICA: El paciente NO puede seleccionar al doctor
     // El sistema asigna automáticamente el doctor disponible según:
@@ -1318,7 +1243,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   }
 
   Future<void> _scheduleAppointment() async {
-    if (!_formKey.currentState!.validate() || _selectedDate == null) {
+    if (!_formKey.currentState!.validate() || _selectedDate == null || _selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor complete todos los campos'),
@@ -1333,37 +1258,72 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     });
 
     try {
-      // Simular proceso de agendamiento
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Aquí se realizaría la lógica real de asignación automática
-      final assignedDoctor = _getAssignedDoctor();
-      
-      String successMessage = 'Cita agendada correctamente con $assignedDoctor';
-      if (_isFromProvince && _selectedProvince != null) {
-        successMessage += '\nPaciente de provincia: $_selectedProvince (Código: $_referralCode)';
+      // Obtener el doctor asignado
+      final doctors = _doctorsBySpecialty[_selectedSpecialty!] ?? [];
+      if (doctors.isEmpty) {
+        throw Exception('No hay doctores disponibles para esta especialidad');
       }
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(successMessage),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 4),
-        ),
+      final assignedDoctor = doctors.first;
+      final doctorId = int.parse(assignedDoctor.id);
+      
+      // Convertir hora a TimeOfDay
+      final timeParts = _selectedTime!.split(':');
+      final appointmentTime = TimeOfDay(
+        hour: int.parse(timeParts[0]),
+        minute: int.parse(timeParts[1]),
       );
       
-      Navigator.of(context).pop(true); // Retornar true para indicar éxito
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al agendar cita: $e'),
-          backgroundColor: Colors.red,
-        ),
+      // Llamar a la API para crear la cita
+      final patientId = SessionManager.userId;
+      if (patientId == null) {
+        throw Exception('No se pudo obtener el ID del paciente logueado');
+      }
+      
+      final result = await _appointmentApi.scheduleAppointment(
+        patientId: patientId,
+        doctorId: doctorId,
+        appointmentDate: _selectedDate!,
+        appointmentTime: appointmentTime,
+        specialty: _selectedSpecialty!,
+        reason: _reason,
+        notes: null,
+        referralCode: null,
+        isFromProvince: false,
+        province: null,
       );
+      
+      if (result.isSuccess) {
+        String successMessage = 'Cita agendada correctamente con ID: ${result.appointmentId}';
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(successMessage),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          Navigator.of(context).pop(true); // Retornar true para indicar éxito
+        }
+      } else {
+        throw Exception(result.errorMessage ?? 'Error desconocido');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al agendar cita: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }

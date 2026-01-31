@@ -42,6 +42,7 @@ enum UserRole {
 }
 
 class User {
+  final int? id;
   final String username;
   final String displayName;
   final UserRole role;
@@ -50,6 +51,7 @@ class User {
   final DateTime createdAt;
 
   const User({
+    this.id,
     required this.username,
     required this.displayName,
     required this.role,
@@ -60,6 +62,7 @@ class User {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'username': username,
       'displayName': displayName,
       'role': role.index,
@@ -71,6 +74,7 @@ class User {
 
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
+      id: map['id'],
       username: map['username'] ?? '',
       displayName: map['displayName'] ?? '',
       role: UserRole.values[map['role'] ?? 0],
@@ -87,6 +91,8 @@ class SessionManager {
   
   static User? get currentUser => _currentUser;
   
+  static int? get userId => _currentUser?.id;
+  
   static bool get isLoggedIn => _currentUser != null;
   
   static bool hasRole(UserRole role) {
@@ -95,6 +101,11 @@ class SessionManager {
   
   static bool hasAnyRole(List<UserRole> roles) {
     return _currentUser != null && roles.contains(_currentUser!.role);
+  }
+
+  // Verifica si el usuario es administrador o director (roles con permisos completos)
+  static bool isAdminOrDirector() {
+    return hasAnyRole([UserRole.administrador, UserRole.director]);
   }
   
   static void login(User user) {

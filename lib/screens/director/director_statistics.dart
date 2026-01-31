@@ -15,6 +15,7 @@ class _DirectorStatisticsState extends State<DirectorStatistics> {
   int _totalDoctors = 0;
   int _totalAppointments = 0;
   int _todayAppointments = 0;
+  int _priorityPatients = 0;
   
   // Estadísticas de terapias (semáforo)
   int _therapiesNotStarted = 0;
@@ -47,6 +48,7 @@ class _DirectorStatisticsState extends State<DirectorStatistics> {
         _totalDoctors = 12;
         _totalAppointments = 238;
         _todayAppointments = 18;
+        _priorityPatients = 23; // Pacientes menores de 18 años
         
         _therapiesNotStarted = 45;
         _therapiesInProgress = 89;
@@ -231,6 +233,21 @@ class _DirectorStatisticsState extends State<DirectorStatistics> {
                 Colors.purple,
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                'Pacientes Prioritarios',
+                _priorityPatients.toString(),
+                Icons.star,
+                Colors.red,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(child: SizedBox()),
           ],
         ),
       ],

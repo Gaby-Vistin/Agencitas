@@ -62,7 +62,7 @@ class _DoctorPatientsState extends State<DoctorPatients> {
         lastName: 'Pérez González',
         identification: '12345678',
         email: 'juan.perez@email.com',
-        phone: '555-0001',
+        phoneMobile: '555-0001',
         birthDate: DateTime(1985, 5, 15),
         address: 'Calle 123 #45-67',
         isFromProvince: false,
@@ -74,7 +74,7 @@ class _DoctorPatientsState extends State<DoctorPatients> {
         lastName: 'García López',
         identification: '87654321',
         email: 'maria.garcia@email.com',
-        phone: '555-0002',
+        phoneMobile: '555-0002',
         birthDate: DateTime(1990, 8, 22),
         address: 'Carrera 89 #12-34',
         isFromProvince: true,
@@ -87,7 +87,7 @@ class _DoctorPatientsState extends State<DoctorPatients> {
         lastName: 'López Martínez',
         identification: '11223344',
         email: 'carlos.lopez@email.com',
-        phone: '555-0003',
+        phoneMobile: '555-0003',
         birthDate: DateTime(1978, 12, 3),
         address: 'Avenida 56 #78-90',
         isFromProvince: false,
@@ -100,7 +100,7 @@ class _DoctorPatientsState extends State<DoctorPatients> {
         lastName: 'Martínez Rivera',
         identification: '55667788',
         email: 'ana.martinez@email.com',
-        phone: '555-0004',
+        phoneMobile: '555-0004',
         birthDate: DateTime(1992, 3, 18),
         address: 'Diagonal 23 #45-67',
         isFromProvince: true,
@@ -113,7 +113,7 @@ class _DoctorPatientsState extends State<DoctorPatients> {
         lastName: 'Silva Ramírez',
         identification: '99887766',
         email: 'roberto.silva@email.com',
-        phone: '555-0005',
+        phoneMobile: '555-0005',
         birthDate: DateTime(1980, 11, 25),
         address: 'Transversal 45 #67-89',
         isFromProvince: false,
@@ -131,7 +131,7 @@ class _DoctorPatientsState extends State<DoctorPatients> {
       filtered = filtered.where((patient) {
         return patient.fullName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                patient.identification.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               patient.email.toLowerCase().contains(_searchQuery.toLowerCase());
+               (patient.email?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
       }).toList();
     }
 
@@ -398,7 +398,7 @@ class _DoctorPatientsState extends State<DoctorPatients> {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          patient.email,
+                          patient.email ?? 'Sin email',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -416,7 +416,7 @@ class _DoctorPatientsState extends State<DoctorPatients> {
                       Icon(Icons.phone, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Text(
-                        patient.phone,
+                        patient.phoneMobile ?? patient.phoneConventional ?? 'Sin teléfono',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -574,9 +574,10 @@ class _DoctorPatientsState extends State<DoctorPatients> {
               children: [
                 _buildInfoSection('Información Personal', [
                   _buildInfoItem('Identificación', patient.identification),
-                  _buildInfoItem('Email', patient.email),
-                  _buildInfoItem('Teléfono', patient.phone),
-                  _buildInfoItem('Dirección', patient.address),
+                  _buildInfoItem('Email', patient.email ?? 'No especificado'),
+                  if (patient.phoneMobile != null) _buildInfoItem('Celular', patient.phoneMobile!),
+                  if (patient.phoneConventional != null) _buildInfoItem('Teléfono', patient.phoneConventional!),
+                  _buildInfoItem('Dirección', patient.address ?? 'No especificada'),
                   _buildInfoItem('Fecha de Nacimiento', 
                     '${patient.birthDate.day}/${patient.birthDate.month}/${patient.birthDate.year}'),
                   _buildInfoItem('Es de Provincia', patient.isFromProvince ? 'Sí' : 'No'),

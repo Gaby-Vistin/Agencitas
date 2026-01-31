@@ -6,6 +6,7 @@ import 'director_doctors.dart';
 import 'director_patients.dart';
 import 'director_therapy_status.dart';
 import 'director_schedules.dart';
+import 'director_users.dart';
 import '../change_password_screen.dart';
 
 class DirectorDashboard extends StatefulWidget {
@@ -47,6 +48,11 @@ class _DirectorDashboardState extends State<DirectorDashboard> {
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.admin_panel_settings),
+            onPressed: _showUsersManagement,
+            tooltip: 'Gestión de Usuarios',
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
@@ -147,6 +153,14 @@ class _DirectorDashboardState extends State<DirectorDashboard> {
           ),
           body: const DirectorSchedules(),
         ),
+      ),
+    );
+  }
+
+  void _showUsersManagement() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const DirectorUsers(),
       ),
     );
   }

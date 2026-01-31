@@ -36,6 +36,7 @@ class AuthService {
 
             final userMap = data['user'];
             return User(
+              id: userMap['id'] as int?,
               username: userMap['username'] ?? '',
               displayName: userMap['displayName'] ?? '',
               role: UserRole.values[userMap['role'] as int],

@@ -2,12 +2,18 @@ import 'package:agencitas/services/api_doctores.dart';
 //import 'package:agencitas/services/mysql_service.dart';
 import 'package:flutter/material.dart';
 import '../models/doctor.dart' as doctor_models;
+import '../models/patient.dart'; // Para PatientType
 import '../widgets/logout_button.dart';
 
 class DoctorListScreen extends StatefulWidget {
   final Function(doctor_models.Doctor)? onDoctorSelected;
+  final PatientType? patientType; // Tipo de paciente para filtrar especialidades
 
-  const DoctorListScreen({super.key, this.onDoctorSelected});
+  const DoctorListScreen({
+    super.key, 
+    this.onDoctorSelected,
+    this.patientType,
+  });
 
   @override
   State<DoctorListScreen> createState() => _DoctorListScreenState();
@@ -37,7 +43,7 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
         .toList();
 
     setState(() {
-      _doctors = doctors;
+      _doctors = _filterDoctorsByPatientType(doctors);
       _isLoading = false;
     });
     } catch (e) {
@@ -48,6 +54,43 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
           SnackBar(content: Text('Error al cargar doctores')),
         );
       }
+    }
+  }
+
+  // Filtrar doctores según el tipo de paciente seleccionado
+  List<doctor_models.Doctor> _filterDoctorsByPatientType(List<doctor_models.Doctor> doctors) {
+    if (widget.patientType == null) {
+      return doctors; // Sin filtro si no se especifica tipo
+    }
+
+    // Especialidades para niños
+    const childSpecialties = [
+      'TERAPIA FÍSICA PEDIÁTRICA',
+      'HIPOTERAPIA',
+      'TERAPIA LENGUAJE',
+      'TERAPIA OCUPACIONAL PEDIÁTRICA',
+    ];
+
+    // Especialidades para adultos
+    const adultSpecialties = [
+      'TERAPIA FÍSICA ADULTOS (ELECTROTERAPIA Y GIMNASIO TERAPÉUTICO)',
+      'TERAPIA OCUPACIONAL ADULTOS',
+    ];
+
+    if (widget.patientType == PatientType.child) {
+      // Filtrar solo doctores con especialidades para niños
+      return doctors.where((doctor) =>
+        childSpecialties.any((specialty) =>
+          doctor.specialty.toUpperCase().contains(specialty)
+        )
+      ).toList();
+    } else {
+      // Filtrar solo doctores con especialidades para adultos
+      return doctors.where((doctor) =>
+        adultSpecialties.any((specialty) =>
+          doctor.specialty.toUpperCase().contains(specialty)
+        )
+      ).toList();
     }
   }
 
@@ -79,7 +122,7 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lista de Doctores'),
+        title: const Text('Lista de Profesionales'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: const [
           LogoutButton(),
@@ -99,7 +142,7 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
                       ),
                       SizedBox(height: 16),
                       Text(
-                        'No hay doctores disponibles',
+                        'No hay profesionales disponibles',
                         style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ],
@@ -220,24 +263,26 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.phone,
-                                      size: 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      doctor.phone,
-                                      style: TextStyle(
+                                if (doctor.phone != null && doctor.phone!.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.phone,
+                                        size: 16,
                                         color: Colors.grey[600],
-                                        fontSize: 14,
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        doctor.phone!,
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                                 const SizedBox(height: 12),
                                 const Divider(),
                                 const SizedBox(height: 8),

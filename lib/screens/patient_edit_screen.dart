@@ -25,12 +25,14 @@ class _PatientEditScreenState extends State<PatientEditScreen> {
   late final TextEditingController _lastNameController;
   late final TextEditingController _identificationController;
   late final TextEditingController _emailController;
-  late final TextEditingController _phoneController;
+  late final TextEditingController _phoneConventionalController;
+  late final TextEditingController _phoneMobileController;
   late final TextEditingController _addressController;
   late final TextEditingController _referralCodeController;
   
   late DateTime _selectedBirthDate;
   late bool _isFromProvince;
+  late InsuranceType _insuranceType;
   bool _isLoading = false;
   List<ReferralCode> _provinces = [];
   ReferralCode? _selectedProvince;
@@ -46,12 +48,14 @@ class _PatientEditScreenState extends State<PatientEditScreen> {
     _nameController = TextEditingController(text: widget.patient.name);
     _lastNameController = TextEditingController(text: widget.patient.lastName);
     _identificationController = TextEditingController(text: widget.patient.identification);
-    _emailController = TextEditingController(text: widget.patient.email);
-    _phoneController = TextEditingController(text: widget.patient.phone);
-    _addressController = TextEditingController(text: widget.patient.address);
+    _emailController = TextEditingController(text: widget.patient.email ?? '');
+    _phoneConventionalController = TextEditingController(text: widget.patient.phoneConventional ?? '');
+    _phoneMobileController = TextEditingController(text: widget.patient.phoneMobile ?? '');
+    _addressController = TextEditingController(text: widget.patient.address ?? '');
     _referralCodeController = TextEditingController(text: widget.patient.referralCode ?? '');
     _selectedBirthDate = widget.patient.birthDate;
     _isFromProvince = widget.patient.isFromProvince;
+    _insuranceType = widget.patient.insuranceType;
     
     //_loadProvinces();
   }
@@ -103,7 +107,8 @@ class _PatientEditScreenState extends State<PatientEditScreen> {
     _lastNameController.dispose();
     _identificationController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
+    _phoneConventionalController.dispose();
+    _phoneMobileController.dispose();
     _addressController.dispose();
     _referralCodeController.dispose();
     super.dispose();
@@ -136,15 +141,17 @@ Future<void> _updatePatient() async {
       "name": _nameController.text.trim(),
       "lastName": _lastNameController.text.trim(),
       "identification": _identificationController.text.trim(),
-      "email": _emailController.text.trim(),
-      "phone": _phoneController.text.trim(),
-      "address": _addressController.text.trim(),
+      "email": _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+      "phoneConventional": _phoneConventionalController.text.trim().isEmpty ? null : _phoneConventionalController.text.trim(),
+      "phoneMobile": _phoneMobileController.text.trim().isEmpty ? null : _phoneMobileController.text.trim(),
+      "address": _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
       "referralCode": _referralCodeController.text.trim().isEmpty
           ? null
           : _referralCodeController.text.trim(),
       "birthDate":
           _selectedBirthDate.toIso8601String().split('T').first,
       "isFromProvince": _isFromProvince ? 1 : 0,
+      "insuranceType": _insuranceType.index,
     };
 
     final originalData = widget.patient.toPatchJson();
@@ -299,15 +306,12 @@ Future<void> _updatePatient() async {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
-                        labelText: 'Correo Electrónico',
+                        labelText: 'Correo Electrónico (opcional)',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.email),
                       ),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'El correo electrónico es obligatorio';
-                        }
-                        if (!EmailValidator.validate(value.trim())) {
+                        if (value != null && value.trim().isNotEmpty && !EmailValidator.validate(value.trim())) {
                           return 'Ingrese un correo electrónico válido';
                         }
                         return null;
@@ -315,34 +319,32 @@ Future<void> _updatePatient() async {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _phoneController,
+                      controller: _phoneConventionalController,
                       keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(
-                        labelText: 'Teléfono',
+                        labelText: 'Teléfono Convencional (opcional)',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.phone),
-                        helperText: 'Convencional (7-9 dígitos) o Celular (10 dígitos)',
+                        hintText: 'Ej: 02-1234567',
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'El teléfono es obligatorio';
-                        }
-                        final phoneLength = value.trim().replaceAll(RegExp(r'[^0-9]'), '').length;
-                        if (phoneLength < 7) {
-                          return 'El teléfono debe tener al menos 7 dígitos';
-                        }
-                        if (phoneLength > 10) {
-                          return 'El teléfono no puede tener más de 10 dígitos';
-                        }
-                        return null;
-                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _phoneMobileController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Celular (opcional)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.phone_android),
+                        hintText: 'Ej: 0987654321',
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _addressController,
                       maxLines: 3,
                       decoration: const InputDecoration(
-                        labelText: 'Dirección',
+                        labelText: 'Dirección (opcional)',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.home),
                       ),
@@ -352,6 +354,57 @@ Future<void> _updatePatient() async {
                         }
                         return null;
                       },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Tipo de Seguro
+                    Text(
+                      'Tipo de Seguro',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    Column(
+                      children: [
+                        RadioListTile<InsuranceType>(
+                          title: const Text('Público'),
+                          value: InsuranceType.public,
+                          groupValue: _insuranceType,
+                          onChanged: (value) {
+                            setState(() {
+                              _insuranceType = value!;
+                            });
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        RadioListTile<InsuranceType>(
+                          title: const Text('Privado'),
+                          value: InsuranceType.private,
+                          groupValue: _insuranceType,
+                          onChanged: (value) {
+                            setState(() {
+                              _insuranceType = value!;
+                            });
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        RadioListTile<InsuranceType>(
+                          title: const Text('Ninguno'),
+                          value: InsuranceType.none,
+                          groupValue: _insuranceType,
+                          onChanged: (value) {
+                            setState(() {
+                              _insuranceType = value!;
+                            });
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
                     ),
                   ],
                 ),

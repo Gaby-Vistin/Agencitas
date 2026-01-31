@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import '../../models/appointment.dart';
 import '../../models/patient.dart';
 import '../../models/doctor.dart';
+import '../../models/user.dart';
+import '../../services/api_doctores.dart';
 
 class DirectorAppointments extends StatefulWidget {
   const DirectorAppointments({Key? key}) : super(key: key);
@@ -236,10 +238,7 @@ class _DirectorAppointmentsState extends State<DirectorAppointments> {
         name: 'Paciente',
         lastName: 'Desconocido',
         identification: '00000000',
-        email: '',
-        phone: '',
         birthDate: DateTime.now(),
-        address: '',
         isFromProvince: false,
         createdAt: DateTime.now(),
       ),
@@ -339,6 +338,16 @@ class _DirectorAppointmentsState extends State<DirectorAppointments> {
                           Icon(Icons.edit),
                           SizedBox(width: 8),
                           Text('Cambiar Estado Terapia'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'change_doctor',
+                      child: Row(
+                        children: [
+                          Icon(Icons.swap_horiz, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('Cambiar Doctor', style: TextStyle(color: Colors.blue)),
                         ],
                       ),
                     ),
@@ -474,6 +483,9 @@ class _DirectorAppointmentsState extends State<DirectorAppointments> {
       case 'edit_therapy':
         _showEditTherapyStatus(appointment);
         break;
+      case 'change_doctor':
+        _showChangeDoctorDialog(appointment);
+        break;
       case 'cancel':
         _showCancelAppointment(appointment);
         break;
@@ -604,6 +616,210 @@ class _DirectorAppointmentsState extends State<DirectorAppointments> {
         backgroundColor: Colors.green,
       ),
     );
+  }
+
+  void _showChangeDoctorDialog(Appointment appointment) async {
+    // Verificar permisos de director
+    if (!SessionManager.isAdminOrDirector()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Solo el director puede cambiar el doctor de una cita'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Cargar lista de doctores
+    final apiDoctores = ApiDoctores();
+    List<Doctor> availableDoctors = [];
+    
+    try {
+      final response = await apiDoctores.getDoctors();
+      availableDoctors = response
+          .map<Doctor>((json) => Doctor.fromJson(json))
+          .where((doctor) => doctor.isActive && doctor.id != appointment.doctorId)
+          .toList();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cargar doctores: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (availableDoctors.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay otros doctores disponibles'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final currentDoctor = _doctors.firstWhere(
+      (d) => d.id == appointment.doctorId,
+      orElse: () => Doctor(
+        id: 0,
+        name: 'Desconocido',
+        lastName: '',
+        specialty: '',
+        license: '',
+        email: '',
+        createdAt: DateTime.now(),
+      ),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cambiar Doctor Asignado'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Doctor actual: Dr. ${currentDoctor.name} ${currentDoctor.lastName}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Seleccione el nuevo doctor:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 300),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: availableDoctors.length,
+                  itemBuilder: (context, index) {
+                    final doctor = availableDoctors[index];
+                    return Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.blue[100],
+                          child: Text(
+                            doctor.name[0].toUpperCase(),
+                            style: TextStyle(
+                              color: Colors.blue[800],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text('Dr. ${doctor.fullName}'),
+                        subtitle: Text(doctor.specialty),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _confirmDoctorChange(appointment, currentDoctor, doctor);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDoctorChange(Appointment appointment, Doctor currentDoctor, Doctor newDoctor) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Cambio'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('¿Está seguro de cambiar el doctor asignado?'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text('De: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                Expanded(child: Text('Dr. ${currentDoctor.fullName}')),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Text('A: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                Expanded(child: Text('Dr. ${newDoctor.fullName}')),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Se notificará al paciente sobre el cambio',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _changeDoctorAssignment(appointment, newDoctor);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Confirmar Cambio'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _changeDoctorAssignment(Appointment appointment, Doctor newDoctor) {
+    // Aquí actualizarías la base de datos con el nuevo doctor
+    // Por ahora solo mostramos un mensaje
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Doctor cambiado a: Dr. ${newDoctor.fullName}'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    
+    // Recargar datos
+    _loadData();
   }
 
   void _cancelAppointment(Appointment appointment, String reason) {

@@ -5,7 +5,7 @@ class Doctor {
   final String specialty;
   final String license;
   final String email;
-  final String phone;
+  final String? phone;
   final List<DoctorSchedule> schedule;
   final int appointmentDuration; // in minutes
   final bool isActive;
@@ -19,7 +19,7 @@ class Doctor {
     required this.specialty,
     required this.license,
     required this.email,
-    required this.phone,
+    this.phone,
     this.schedule = const [],
     this.appointmentDuration = 30,
     this.isActive = true,

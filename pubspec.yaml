@@ -51,6 +51,7 @@ dependencies:
   
   # UI components
   flutter_datetime_picker_plus: ^2.2.0
+  flutter_svg: ^2.0.10+1
   
   # Validation
   email_validator: ^2.1.17

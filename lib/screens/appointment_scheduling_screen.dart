@@ -1,20 +1,15 @@
-/*
 // -------------------------------------
 // Pantalla de Agendamiento de Citas
 // -------------------------------------
-
-import 'package:agencitas/models/appointment.dart';
-import 'package:agencitas/services/api_registro_paciente.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/patient.dart';
 import '../models/doctor.dart' as doctor_models;
 import '../services/appointment_service.dart';
+import '../services/api_registro_paciente.dart';
 import '../widgets/logout_button.dart';
 import 'doctor_list_screen.dart';
-
-
 
 class AppointmentSchedulingScreen extends StatefulWidget {
   final Patient? patient;
@@ -28,32 +23,19 @@ class AppointmentSchedulingScreen extends StatefulWidget {
 class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _notesController = TextEditingController();
-  final _referralCodeController = TextEditingController();
-  
 
-
-
-  //final MySQLDatabaseService _dbService = MySQLDatabaseService();
-  
-  final AppointmentService _appointmentService = AppointmentService(); // Servicio (api_citas.dart)
+  final AppointmentService _appointmentService = AppointmentService();
   final ApiRegistroPaciente _patientService = ApiRegistroPaciente();
-
 
   Patient? _selectedPatient;
   doctor_models.Doctor? _selectedDoctor;
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-  
-  //doctor_models.TimeOfDay? _selectedTime;
   TimeOfDay? _selectedTime;
-
-  ReferralCode? _selectedProvince;
+  PatientType? _selectedPatientType; // Tipo de paciente: niño o adulto
   
   List<Patient> _patients = [];
-
-  //List<doctor_models.TimeOfDay> _availableTimeSlots = [];
   List<TimeOfDay> _availableTimeSlots = [];
 
-  List<ReferralCode> _provinces = [];
   bool _isLoading = false;
   bool _isLoadingTimeSlots = false;
 
@@ -62,59 +44,42 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
     super.initState();
     _selectedPatient = widget.patient;
     _loadInitialData();
-    if (_selectedPatient?.referralCode != null) {
-      _referralCodeController.text = _selectedPatient!.referralCode!;
-    }
   }
 
   @override
   void dispose() {
     _notesController.dispose();
-    _referralCodeController.dispose();
     super.dispose();
   }
 
-  
-  
   Future<void> _loadInitialData() async {
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    // 🔹 PACIENTES → API de pacientes
-    final patientsJson = await _patientService.getPatients();
+    try {
+      final patientsJson = await _patientService.getPatients();
+      final patients = patientsJson.map((json) => Patient.fromJson(json)).toList();
 
-    final patients = patientsJson
-        .map((json) => Patient.fromJson(json))
-        .toList();
+      if (!mounted) return;
 
-    if (!mounted) return;
+      setState(() {
+        _patients = patients.where((p) => p.canScheduleAppointment).toList();
+      });
+    } catch (e) {
+      if (!mounted) return;
 
-    setState(() {
-      _patients = patients
-          .where((p) => p.canScheduleAppointment)
-          .toList();
-
-    });
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error al cargar datos: $e'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cargar datos: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
-}
 
-
-
-
-  // Cargar horarios disponibles según doctor y fecha seleccionados
   Future<void> _loadAvailableTimeSlots() async {
     if (_selectedDoctor == null) return;
 
@@ -149,11 +114,7 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       }
     }
   }
- 
 
-
-
-  // Seleccionar fecha de la cita
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -169,13 +130,22 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       _loadAvailableTimeSlots();
     }
   }
-  
 
-  // Seleccionar doctor desde la lista de doctores
   Future<void> _selectDoctor() async {
+    if (_selectedPatientType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Primero seleccione el tipo de terapia (Niño o Adulto)'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     final doctor_models.Doctor? selectedDoctor = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => DoctorListScreen(
+          patientType: _selectedPatientType,
           onDoctorSelected: (doctor) {
             Navigator.of(context).pop(doctor);
           },
@@ -190,9 +160,7 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       _loadAvailableTimeSlots();
     }
   }
-  
 
-  // Agendar cita usando el servicio de citas
   Future<void> _scheduleAppointment() async {
     if (!_formKey.currentState!.validate()) return;
     
@@ -206,15 +174,26 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       return;
     }
 
-    if (_selectedDoctor == null) {
+    if (_selectedPatientType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Seleccione un doctor'),
+          content: Text('Seleccione el tipo de terapia'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
+
+    if (_selectedDoctor == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Seleccione un profesional'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (_selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -230,37 +209,25 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
     });
 
     try {
-      final result = await _appointmentService.scheduleAppointment(
+      await _appointmentService.scheduleAppointment(
         patient: _selectedPatient!,
         doctorId: _selectedDoctor!.id!,
         appointmentDate: _selectedDate,
         appointmentTime: _selectedTime!,  
-        stage: _selectedPatient!.currentStage,
+        stage: _selectedPatient!.currentStage.index + 1,
         notes: _notesController.text.trim().isNotEmpty 
             ? _notesController.text.trim() 
             : null,
-        referralCode: _referralCodeController.text.trim().isNotEmpty 
-                ? _referralCodeController.text.trim() 
-                : null,
       );
 
       if (mounted) {
-        if (result.isSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cita agendada exitosamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.of(context).pop();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result.errorMessage!),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cita agendada exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
@@ -280,9 +247,6 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
     }
   }
 
-  
-
-  //DISEÑO DE LA PANTALLA
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -296,14 +260,14 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12.0), // Reducido de 16 a 12
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Patient Selection
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(10.0), // Reducido de 12 a 10
+                  padding: const EdgeInsets.all(10.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -311,10 +275,10 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
                         'Paciente',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 12), // Reducido de 16 a 12
+                      const SizedBox(height: 12),
                       if (widget.patient != null)
                         Container(
-                          padding: const EdgeInsets.all(10), // Reducido de 12 a 10
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -341,59 +305,209 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
                                   ],
                                 ),
                               ),
+                              // Badge de prioridad si el paciente es niño
+                              if (_selectedPatient!.isPriority)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(Icons.star, color: Colors.white, size: 14),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'PRIORITARIO',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                             ],
                           ),
                         )
                       else
-                        DropdownButtonFormField<Patient>(
-                          initialValue: _selectedPatient,
-                          decoration: const InputDecoration(
-                            labelText: 'Seleccionar Paciente',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.person),
-                          ),
-                          menuMaxHeight: 200, // Limitar altura del menú
-                          isExpanded: true, // Expandir para evitar overflow horizontal
-                          items: _patients.map((patient) {
-                            return DropdownMenuItem(
-                              value: patient,
-                              child: Text(
-                                '${patient.fullName} - ${patient.currentStage.displayName}',
-                                style: const TextStyle(fontSize: 14),
-                                overflow: TextOverflow.ellipsis,
+                        InkWell(
+                          onTap: () => _showPatientSearchDialog(),
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'Seleccionar Paciente',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.person),
+                              suffixIcon: Icon(Icons.search),
+                            ),
+                            child: Text(
+                              _selectedPatient != null
+                                  ? '${_selectedPatient!.fullName} - ${_selectedPatient!.identification}'
+                                  : 'Buscar por nombre o cédula',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: _selectedPatient != null ? Colors.black : Colors.grey[600],
                               ),
-                            );
-                          }).toList(),
-                          onChanged: (patient) {
-                            setState(() {
-                              _selectedPatient = patient;
-                              if (patient?.referralCode != null) {
-                                _referralCodeController.text = patient!.referralCode!;
-                              }
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null) {
-                              return 'Seleccione un paciente';
-                            }
-                            return null;
-                          },
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ),
                     ],
                   ),
                 ),
-                ),
-              const SizedBox(height: 12), // Reducido de 16 a 12
+              ),
+              const SizedBox(height: 12),
 
-              // Doctor Selection
+              // Patient Type Selection (Niño o Adulto)
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(12.0), // Reducido de 16 a 12
+                  padding: const EdgeInsets.all(12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Doctor',
+                        'Tipo de Terapia',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Seleccione si la terapia es para niño o adulto',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: RadioListTile<PatientType>(
+                              title: const Text('Niño'),
+                              subtitle: const Text('< 18 años'),
+                              value: PatientType.child,
+                              groupValue: _selectedPatientType,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedPatientType = value;
+                                  _selectedDoctor = null;
+                                });
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                          Expanded(
+                            child: RadioListTile<PatientType>(
+                              title: const Text('Adulto'),
+                              subtitle: const Text('≥ 18 años'),
+                              value: PatientType.adult,
+                              groupValue: _selectedPatientType,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedPatientType = value;
+                                  _selectedDoctor = null;
+                                });
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      // Mostrar especialidades disponibles según el tipo seleccionado
+                      if (_selectedPatientType != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 16),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            border: Border.all(color: Colors.blue.shade200),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Especialidades Disponibles',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade900,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              if (_selectedPatientType == PatientType.child) ...[
+                                _buildSpecialtyItem('Terapia Física Pediátrica'),
+                                _buildSpecialtyItem('Hipoterapia'),
+                                _buildSpecialtyItem('Terapia Lenguaje'),
+                                _buildSpecialtyItem('Terapia Ocupacional Pediátrica'),
+                              ] else ...[
+                                _buildSpecialtyItem('Terapia Física Adultos (Electroterapia y Gimnasio Terapéutico)'),
+                                _buildSpecialtyItem('Terapia Ocupacional Adultos'),
+                              ],
+                            ],
+                          ),
+                        ),
+                      
+                      // Mensaje de prioridad cuando se selecciona Niño
+                      if (_selectedPatientType == PatientType.child)
+                        Container(
+                          margin: const EdgeInsets.only(top: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            border: Border.all(color: Colors.orange.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.priority_high, color: Colors.orange.shade700, size: 24),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Paciente Prioritario',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange.shade900,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Los niños tienen prioridad en la asignación de citas',
+                                      style: TextStyle(
+                                        color: Colors.orange.shade800,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Doctor Selection
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Profesional',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 16),
@@ -424,7 +538,7 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
                                           ),
                                         ],
                                       )
-                                    : const Text('Seleccionar Doctor'),
+                                    : const Text('Seleccionar Profesional'),
                               ),
                               const Icon(Icons.arrow_forward_ios, size: 16),
                             ],
@@ -434,13 +548,13 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
                     ],
                   ),
                 ),
-                ),
-              const SizedBox(height: 12), // Reducido de 16 a 12
+              ),
+              const SizedBox(height: 12),
 
               // Date and Time Selection
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(12.0), // Reducido de 16 a 12
+                  padding: const EdgeInsets.all(12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -490,7 +604,7 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
                             children: _availableTimeSlots.map((time) {
                               final isSelected = _selectedTime == time;
                               return FilterChip(
-                                label: Text(time.toString()),
+                                label: Text(time.format(context)),
                                 selected: isSelected,
                                 onSelected: (selected) {
                                   setState(() {
@@ -504,108 +618,21 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
                     ],
                   ),
                 ),
-                ),
-              const SizedBox(height: 12), // Reducido de 16 a 12
+              ),
+              const SizedBox(height: 12),
 
-              // Additional Information
+              // Notes
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(12.0), // Reducido de 16 a 12
+                  padding: const EdgeInsets.all(12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Información Adicional',
+                        'Notas de la Consulta',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 16),
-                      
-                      // Código de referencia para pacientes de provincia
-                      if (_selectedPatient?.isFromProvince == true)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            DropdownButtonFormField<ReferralCode>(
-                              initialValue: _selectedProvince,
-                              decoration: const InputDecoration(
-                                labelText: 'Provincia de Origen *',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.location_on),
-                                helperText: 'Seleccione su provincia para generar el código',
-                              ),
-                              hint: const Text('Seleccionar Provincia'),
-                              isExpanded: true, // Para evitar overflow
-                              items: _provinces.map((ReferralCode province) {
-                                return DropdownMenuItem<ReferralCode>(
-                                  value: province,
-                                  child: Text(
-                                    '${province.description} (${province.code})',
-                                    style: const TextStyle(fontSize: 14),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (ReferralCode? newValue) {
-                                setState(() {
-                                  _selectedProvince = newValue;
-                                  if (newValue != null) {
-                                    _referralCodeController.text = newValue.code;
-                                  } else {
-                                    _referralCodeController.clear();
-                                  }
-                                });
-                              },
-                              validator: (value) {
-                                if (_selectedPatient?.isFromProvince == true && value == null) {
-                                  return 'Debe seleccionar una provincia';
-                                }
-                                return null;
-                              },
-                            ),
-                            if (_selectedProvince != null) ...[
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.qr_code,
-                                      color: Theme.of(context).colorScheme.primary,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Código generado: ${_selectedProvince!.code}',
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.primary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        )
-                      else if (_selectedPatient?.referralCode != null)
-                        TextFormField(
-                          controller: _referralCodeController,
-                          decoration: const InputDecoration(
-                            labelText: 'Código de Referencia',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.qr_code),
-                            helperText: 'Ingrese su código de referencia',
-                          ),
-                        ),
-                      
-                      if ((_selectedPatient?.isFromProvince == true || _selectedPatient?.referralCode != null))
-                        const SizedBox(height: 16),
                       TextFormField(
                         controller: _notesController,
                         maxLines: 3,
@@ -641,7 +668,7 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
                           Text('Agendando...'),
                         ],
                       )
-                    : const Text('Agendar Cita'),
+                    : const Text('Guardar Cita'),
               ),
             ],
           ),
@@ -649,295 +676,107 @@ class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScree
       ),
     );
   }
-}
 
-*/
-
-// INTERFAZ DE AGENDAMIENTO DE CITAS
-
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-
-import '../models/patient.dart';
-import '../models/doctor.dart' as doctor_models;
-import '../services/appointment_service.dart';
-import '../services/api_registro_paciente.dart';
-import '../widgets/logout_button.dart';
-import 'doctor_list_screen.dart';
-
-class AppointmentSchedulingScreen extends StatefulWidget {
-  const AppointmentSchedulingScreen({super.key});
-
-  @override
-  State<AppointmentSchedulingScreen> createState() =>
-      _AppointmentSchedulingScreenState();
-}
-
-class _AppointmentSchedulingScreenState
-    extends State<AppointmentSchedulingScreen> {
-  
-  //final _formKey = GlobalKey<FormState>();
-  final _notesController = TextEditingController();
-  final _referralCodeController = TextEditingController();
-
-  final AppointmentService _appointmentService = AppointmentService();
-  final ApiRegistroPaciente _patientService = ApiRegistroPaciente();
-
-  List<Patient> _patients = [];
-  Patient? _selectedPatient;
-
-  doctor_models.Doctor? _selectedDoctor;
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-  TimeOfDay? _selectedTime;
-
-  List<TimeOfDay> _availableTimeSlots = [];
-
-  bool _isLoading = false;
-  bool _isLoadingTimeSlots = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPatients();
-  }
-
-  @override
-  void dispose() {
-    _notesController.dispose();
-    _referralCodeController.dispose();
-    super.dispose();
-  }
-
-  // -----------------------------
-  // Cargar pacientes
-  // -----------------------------
-  Future<void> _loadPatients() async {
-    try {
-      final data = await _patientService.getPatients();
-      setState(() {
-        _patients = data.map((e) => Patient.fromJson(e)).toList();
-      });
-    } catch (e) {
-      _showError('Error al cargar pacientes');
-    }
-  }
-
-  // -----------------------------
-  // Horarios disponibles
-  // -----------------------------
-  Future<void> _loadAvailableTimeSlots() async {
-    if (_selectedDoctor == null) return;
-
-    setState(() {
-      _isLoadingTimeSlots = true;
-      _selectedTime = null;
-    });
-
-    final slots = await _appointmentService.getAvailableTimeSlots(
-      _selectedDoctor!.id!,
-      _selectedDate,
-    );
-
-    setState(() {
-      _availableTimeSlots = slots;
-      _isLoadingTimeSlots = false;
-    });
-  }
-
-  // -----------------------------
-  // Seleccionar fecha
-  // -----------------------------
-  Future<void> _selectDate() async {
-    final picked = await showDatePicker(
+  void _showPatientSearchDialog() {
+    String searchQuery = '';
+    
+    showDialog(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now().add(const Duration(days: 1)),
-      lastDate: DateTime.now().add(const Duration(days: 90)),
-    );
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final filteredPatients = _patients.where((patient) {
+              if (searchQuery.isEmpty) return true;
+              final query = searchQuery.toLowerCase();
+              return patient.fullName.toLowerCase().contains(query) ||
+                     patient.identification.contains(query);
+            }).toList();
 
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-      _loadAvailableTimeSlots();
-    }
-  }
-
-  // -----------------------------
-  // Seleccionar doctor
-  // -----------------------------
-  Future<void> _selectDoctor() async {
-    final doctor_models.Doctor? doctor =
-        await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DoctorListScreen(
-          onDoctorSelected: (doc) => Navigator.pop(context, doc),
-        ),
-      ),
-    );
-
-    if (doctor != null) {
-      setState(() => _selectedDoctor = doctor);
-      _loadAvailableTimeSlots();
-    }
-  }
-
-  // -----------------------------
-  // Guardar cita
-  // -----------------------------
-  Future<void> _scheduleAppointment() async {
-    if (_selectedPatient == null ||
-        _selectedDoctor == null ||
-        _selectedTime == null) {
-      _showError('Complete todos los campos');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      await _appointmentService.scheduleAppointment(
-        patient: _selectedPatient!,
-        doctorId: _selectedDoctor!.id!,
-        appointmentDate: _selectedDate,
-        appointmentTime: _selectedTime!,
-        stage: _selectedPatient!.currentStage.index, // 🔑 CLAVE
-        notes: _notesController.text.isNotEmpty
-            ? _notesController.text
-            : null,
-        referralCode: _referralCodeController.text.isNotEmpty
-            ? _referralCodeController.text
-            : null,
-      );
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cita agendada correctamente'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pop(context);
-    } catch (e) {
-      _showError('Error al agendar cita');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.red),
-    );
-  }
-
-  // -----------------------------
-  // UI
-  // -----------------------------
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Agendar Cita'),
-        actions: const [LogoutButton()],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Paciente
-            DropdownButtonFormField<Patient>(
-              value: _selectedPatient,
-              hint: const Text('Seleccionar paciente'),
-              items: _patients
-                  .map(
-                    (p) => DropdownMenuItem(
-                      value: p,
-                      child: Text(p.fullName),
+            return AlertDialog(
+              title: const Text('Buscar Paciente'),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 400,
+                child: Column(
+                  children: [
+                    TextField(
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Buscar por nombre o cédula',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          searchQuery = value;
+                        });
+                      },
                     ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() => _selectedPatient = value);
-              },
-            ),
-
-            const SizedBox(height: 12),
-
-            // Doctor
-            ListTile(
-              title: Text(
-                  _selectedDoctor?.fullName ?? 'Seleccionar doctor'),
-              trailing: const Icon(Icons.search),
-              onTap: _selectDoctor,
-            ),
-
-            const SizedBox(height: 12),
-
-            // Fecha
-            ListTile(
-              title: const Text('Fecha'),
-              subtitle: Text(
-                DateFormat('dd/MM/yyyy').format(_selectedDate),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: filteredPatients.isEmpty
+                          ? const Center(child: Text('No se encontraron pacientes'))
+                          : ListView.builder(
+                              itemCount: filteredPatients.length,
+                              itemBuilder: (context, index) {
+                                final patient = filteredPatients[index];
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    child: Text(patient.name[0]),
+                                  ),
+                                  title: Text(patient.fullName),
+                                  subtitle: Text('Cédula: ${patient.identification}'),
+                                  trailing: Text(
+                                    patient.currentStage.displayName,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blue[700],
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedPatient = patient;
+                                    });
+                                    Navigator.pop(context);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
-              onTap: _selectDate,
-            ),
-
-            const SizedBox(height: 12),
-
-            // Horarios
-            if (_isLoadingTimeSlots)
-              const CircularProgressIndicator()
-            else
-              Wrap(
-                spacing: 8,
-                children: _availableTimeSlots.map((time) {
-                  final label =
-                      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-                  return ChoiceChip(
-                    label: Text(label),
-                    selected: _selectedTime == time,
-                    onSelected: (_) =>
-                        setState(() => _selectedTime = time),
-                  );
-                }).toList(),
-              ),
-
-            const SizedBox(height: 16),
-
-            // Notas
-            TextField(
-              controller: _notesController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Notas de la consulta',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Código referencia
-            TextField(
-              controller: _referralCodeController,
-              decoration: const InputDecoration(
-                labelText: 'Código de referencia',
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            ElevatedButton(
-              onPressed: _isLoading ? null : _scheduleAppointment,
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Guardar Cita'),
-            ),
-          ],
-        ),
-      ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
-}
 
+  // Widget para mostrar cada especialidad disponible
+  Widget _buildSpecialtyItem(String specialty) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              specialty,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }}

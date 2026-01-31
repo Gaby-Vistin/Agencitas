@@ -324,7 +324,7 @@ class _PatientDashboardState extends State<PatientDashboard> {
               : '',
           identification: '0000000000',
           email: widget.patient.email,
-          phone: '0000000000',
+          phoneMobile: '0000000000',
           birthDate: DateTime.now().subtract(const Duration(days: 365 * 25)),
           address: 'No especificada',
           isFromProvince: false,
